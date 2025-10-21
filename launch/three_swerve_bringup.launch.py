@@ -8,7 +8,7 @@ from launch_ros.parameters_type import SomeParameters  # noqa
 from lifecycle_msgs.msg import Transition
 from ament_index_python.packages import get_package_share_directory
 
-import ros_launch_helpers as rlh
+import ros2_launch_helpers as rlh
 
 import os
 
