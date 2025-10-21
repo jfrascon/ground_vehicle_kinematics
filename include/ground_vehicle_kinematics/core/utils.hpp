@@ -9,4 +9,3 @@ namespace ground_vehicle_kinematics
     return std::abs(a - b) <= tol;
   }
 }  // namespace ground_vehicle_kinematics
-
