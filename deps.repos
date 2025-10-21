@@ -1,0 +1,10 @@
+# This is a template for creating a repository file. Replace the placeholders with actual values.
+#
+# Recommendations:
+#
+repositories:
+    ros2_launch_helpers:
+        type: git
+        url: https://github.com/jfrascon/ros2_launch_helpers.git
+        version: 081fb944efd0f2f7a5f7cdf7caf6171b83186128
+        #exclude: [] # list of repos files inside repository_path to exclude (optional)
