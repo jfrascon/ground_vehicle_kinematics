@@ -2,51 +2,73 @@
   ros__parameters:
     # use_sim_time IS automatically handled, no need to specify here.
 
-    kinematics_solver_type: "mixed" # direct: JointState->Twist, inverse: Twist->JointState, mixed: run both flows.
-    inverse_kinematics_solver_initialization_timeout: 10.0 # seconds to wait for the initial JointState seed.
+    initial_sw_states_reception_period: 10.0 # seconds to wait for the initial JointState seed.
 
+    # Most of the values found here can be obtained either from the URDF or by measuring the real robot.
     steerable_wheels:
-      steerable_wheel_a:
-        name: "wheel_1"
-        radius: 0.10
-        steerable_joint:
-          name: "wheel_1_steerable_joint"
-          parent_link_name: "base_link"
-          child_link_name: "wheel_1_steerable_link"
-          origin: { x: -0.35, y: -0.25, z: 0.0, R: 0.0, P: 0.0, Y: 0.0 }
-          angular_limits: { lower: -3.14159, upper: 3.14159 } # Solver enforces continuity within these bounds.
-        rotation_joint:
-          name: "wheel_1_joint"
-          parent_link_name: "wheel_1_steerable_link"
-          child_link_name: "wheel_1_link"
-          origin: { x: 0.0, y: 0.0, z: -0.1, R: 0.0, P: 0.0, Y: 0.0 }
+      # steerable_wheel_0 is located on the x-axis of the robot, either with positive or negative x coordinate,
+      # but with y=0.
 
-      steerable_wheel_b:
-        name: "wheel_2"
+      steerable_wheel_0:
+        name: "st_wheel_0"
         radius: 0.10
         steerable_joint:
-          name: "wheel_2_steerable_joint"
+          name: "st_wheel_0_steerable_joint"
           parent_link_name: "base_link"
-          child_link_name: "wheel_2_steerable_link"
-          origin: { x: -0.35, y: 0.25, z: 0.0, R: 0.0, P: 0.0, Y: 0.0 }
-          angular_limits: { lower: -3.14159, upper: 3.14159 }
-        rotation_joint:
-          name: "wheel_2_joint"
-          parent_link_name: "wheel_2_steerable_link"
-          child_link_name: "wheel_2_link"
-          origin: { x: 0.0, y: 0.0, z: -0.1, R: 0.0, P: 0.0, Y: 0.0 }
-
-      steerable_wheel_c:
-        name: "wheel_3"
-        radius: 0.10
-        steerable_joint:
-          name: "wheel_3_steerable_joint"
-          parent_link_name: "base_link"
-          child_link_name: "wheel_3_steerable_link"
+          child_link_name: "st_wheel_0_steerable_link"
           origin: { x: 0.35, y: 0.0, z: 0.0, R: 0.0, P: 0.0, Y: 0.0 }
-          angular_limits: { lower: -3.14159, upper: 3.14159 }
+          # Note: If you want the wheel to be able to reach +-pi rad angle (+-180 degress), set limits to +-3.1416.
+          # pi = 3.141592654.... < 3.1416
+          limits: { lower: -3.1416, upper: 3.1416 } # rad
         rotation_joint:
-          name: "wheel_3_joint"
-          parent_link_name: "wheel_3_steerable_link"
-          child_link_name: "wheel_3_link"
+          name: "st_wheel_0_joint"
+          parent_link_name: "st_wheel_0_steerable_link"
+          child_link_name: "st_wheel_0_link"
           origin: { x: 0.0, y: 0.0, z: -0.1, R: 0.0, P: 0.0, Y: 0.0 }
+          limits: { lower: -50.0, upper: 50.0 } # rad/s
+
+      # steerable_wheel_1 is the one with steerable_joint.origin.y > 0.
+      # This wheel also has an opposite sign for steerable_joint.origin.x coordinate compared to
+      # steerable_wheel_0.steerable_joint.origin.x.
+      # If steerable_wheel_0.steerable_joint.origin.x > 0, then steerable_wheel_1.steerable_joint.origin.x < 0, and
+      # vice versa.
+      steerable_wheel_1:
+        name: "st_wheel_1"
+        radius: 0.10
+        steerable_joint:
+          name: "st_wheel_1_steerable_joint"
+          parent_link_name: "base_link"
+          child_link_name: "st_wheel_1_steerable_link"
+          origin: { x: -0.35, y: 0.25, z: 0.0, R: 0.0, P: 0.0, Y: 0.0 }
+          # Note: If you want the wheel to be able to reach +-pi rad angle (+-180 degress), set limits to +-3.1416.
+          # pi = 3.141592654.... < 3.1416
+          limits: { lower: -3.1416, upper: 3.1416 } # rad
+        rotation_joint:
+          name: "st_wheel_1_joint"
+          parent_link_name: "st_wheel_1_steerable_link"
+          child_link_name: "st_wheel_1_link"
+          origin: { x: 0.0, y: 0.0, z: -0.1, R: 0.0, P: 0.0, Y: 0.0 }
+          limits: { lower: -50.0, upper: 50.0 } # rad/s
+
+      # steerable_wheel_2 is the one with steerable_joint.origin.y < 0.
+      # This wheel also has an opposite sign for steerable_joint.origin.x coordinate compared to
+      # steerable_wheel_0.steerable_joint.origin.x.
+      # If steerable_wheel_0.steerable_joint.origin.x > 0, then steerable_wheel_2.steerable_joint.origin.x < 0, and
+      # vice versa.
+      steerable_wheel_2:
+        name: "st_wheel_2"
+        radius: 0.10
+        steerable_joint:
+          name: "st_wheel_2_steerable_joint"
+          parent_link_name: "base_link"
+          child_link_name: "st_wheel_2_steerable_link"
+          origin: { x: -0.35, y: -0.25, z: 0.0, R: 0.0, P: 0.0, Y: 0.0 }
+          # Note: If you want the wheel to be able to reach +-pi rad angle (+-180 degress), set limits to +-3.1416.
+          # pi = 3.141592654.... < 3.1416
+          limits: { lower: -3.1416, upper: 3.1416 } # rad
+        rotation_joint:
+          name: "st_wheel_2_joint"
+          parent_link_name: "st_wheel_2_steerable_link"
+          child_link_name: "st_wheel_2_link"
+          origin: { x: 0.0, y: 0.0, z: -0.1, R: 0.0, P: 0.0, Y: 0.0 }
+          limits: { lower: -50.0, upper: 50.0 } # rad/s

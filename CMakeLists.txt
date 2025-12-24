@@ -7,15 +7,16 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rclcpp_lifecycle REQUIRED)
+ # find_package(rclcpp_lifecycle REQUIRED)
+find_package(actuator_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 3.3 REQUIRED)
 find_package(angles REQUIRED)
 
-add_library(${PROJECT_NAME}_core src/core/three_swerve_kinematics.cpp)
+add_library(${PROJECT_NAME}_core src/core/three_swerve_kinematics.cpp src/parameter_utils.cpp)
 target_link_libraries(${PROJECT_NAME}_core Eigen3::Eigen)
-ament_target_dependencies(${PROJECT_NAME}_core angles)
+ament_target_dependencies(${PROJECT_NAME}_core rclcpp angles actuator_msgs)
 target_include_directories(
   ${PROJECT_NAME}_core
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -24,8 +25,7 @@ target_include_directories(
 add_executable(three_swerve_kinematics_node src/three_swerve_kinematics_node.cpp
                                             src/three_swerve_kinematics_ros.cpp)
 target_link_libraries(three_swerve_kinematics_node ${PROJECT_NAME}_core)
-ament_target_dependencies(three_swerve_kinematics_node rclcpp rclcpp_lifecycle
-                          sensor_msgs geometry_msgs angles)
+ament_target_dependencies(three_swerve_kinematics_node rclcpp sensor_msgs geometry_msgs angles actuator_msgs)
 target_include_directories(three_swerve_kinematics_node PRIVATE include)
 
 install(DIRECTORY include/ DESTINATION include/)
