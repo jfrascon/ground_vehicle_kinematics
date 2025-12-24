@@ -4,9 +4,7 @@
 
 namespace ground_vehicle_kinematics
 {
-  Joint process_joint(const rclcpp::Node& node,
-                      const std::string& robot_prefix,
-                      const std::string& joint_parameter_path)
+  Joint process_joint(const rclcpp::Node& node, const std::string& joint_parameter_path)
   {
     if(joint_parameter_path.empty())
     {
@@ -37,9 +35,9 @@ namespace ground_vehicle_kinematics
     }
 
     return Joint{
-      robot_prefix + name,
-      robot_prefix + parent_link_name,
-      robot_prefix + child_link_name,
+      name,
+      parent_link_name,
+      child_link_name,
       process_pose(node, joint_parameter_path + ".origin"),
       process_limits(node, joint_parameter_path + ".limits"),
     };
@@ -78,7 +76,7 @@ namespace ground_vehicle_kinematics
   }
   //////////////////////////////////////////////////////////////////////////////
 
-  Wheel process_wheel(const rclcpp::Node& node, const std::string& robot_prefix, const std::string& wheel_path)
+  Wheel process_wheel(const rclcpp::Node& node, const std::string& wheel_path)
   {
     if(wheel_path.empty())
     {
@@ -99,18 +97,14 @@ namespace ground_vehicle_kinematics
       throw std::invalid_argument("Wheel radius in path " + wheel_path + " must be positive.");
     }
 
-    return Wheel{robot_prefix + wheel_name,
-                 wheel_radius,
-                 RotationJoint(process_joint(node, robot_prefix, wheel_path + ".rotation_joint"))};
+    return Wheel{wheel_name, wheel_radius, RotationJoint(process_joint(node, wheel_path + ".rotation_joint"))};
   }
   //////////////////////////////////////////////////////////////////////////////
 
-  SteerableWheel process_st_wheel(const rclcpp::Node& node,
-                                  const std::string& robot_prefix,
-                                  const std::string& st_wheel_path)
+  SteerableWheel process_st_wheel(const rclcpp::Node& node, const std::string& st_wheel_path)
   {
-    SteerableWheel st_wheel{process_wheel(node, robot_prefix, st_wheel_path),
-                            SteerableJoint(process_joint(node, robot_prefix, st_wheel_path + ".steerable_joint"))};
+    SteerableWheel st_wheel{process_wheel(node, st_wheel_path),
+                            SteerableJoint(process_joint(node, st_wheel_path + ".steerable_joint"))};
 
     if(st_wheel.rotation_joint.parent_link_name != st_wheel.steerable_joint.child_link_name)
     {
@@ -137,12 +131,10 @@ namespace ground_vehicle_kinematics
   }
   //////////////////////////////////////////////////////////////////////////////
 
-  WheelDescriptor process_wheel_descriptor(const rclcpp::Node& node,
-                                           const std::string& robot_prefix,
-                                           const std::string& wheel_path)
+  WheelDescriptor process_wheel_descriptor(const rclcpp::Node& node, const std::string& wheel_path)
   {
     WheelDescriptor wheel_desc;
-    wheel_desc.wheel                                           = process_wheel(node, robot_prefix, wheel_path);
+    wheel_desc.wheel                                           = process_wheel(node, wheel_path);
     wheel_desc.wheel_state.wheel_name                          = wheel_desc.wheel.name;
     wheel_desc.wheel_state.rotation_joint_state.joint_name     = wheel_desc.wheel.rotation_joint.name;
     wheel_desc.wheel_command.wheel_name                        = wheel_desc.wheel.name;
@@ -152,17 +144,15 @@ namespace ground_vehicle_kinematics
   }
   //////////////////////////////////////////////////////////////////////////////
 
-  SteerableWheelDescriptor process_st_wheel_descriptor(const rclcpp::Node& node,
-                                                       const std::string& robot_prefix,
-                                                       const std::string& st_wheel_path)
+  SteerableWheelDescriptor process_st_wheel_descriptor(const rclcpp::Node& node, const std::string& st_wheel_path)
   {
     SteerableWheelDescriptor st_wheel_desc;
 
-    st_wheel_desc.st_wheel                                        = process_st_wheel(node, robot_prefix, st_wheel_path);
-    st_wheel_desc.st_wheel_state.wheel_name                       = st_wheel_desc.st_wheel.name;
-    st_wheel_desc.st_wheel_state.rotation_joint_state.joint_name  = st_wheel_desc.st_wheel.rotation_joint.name;
-    st_wheel_desc.st_wheel_state.steerable_joint_state.joint_name = st_wheel_desc.st_wheel.steerable_joint.name;
-    st_wheel_desc.st_wheel_command.wheel_name                     = st_wheel_desc.st_wheel.name;
+    st_wheel_desc.st_wheel                                            = process_st_wheel(node, st_wheel_path);
+    st_wheel_desc.st_wheel_state.wheel_name                           = st_wheel_desc.st_wheel.name;
+    st_wheel_desc.st_wheel_state.rotation_joint_state.joint_name      = st_wheel_desc.st_wheel.rotation_joint.name;
+    st_wheel_desc.st_wheel_state.steerable_joint_state.joint_name     = st_wheel_desc.st_wheel.steerable_joint.name;
+    st_wheel_desc.st_wheel_command.wheel_name                         = st_wheel_desc.st_wheel.name;
     st_wheel_desc.st_wheel_command.rotation_joint_command.joint_name  = st_wheel_desc.st_wheel.rotation_joint.name;
     st_wheel_desc.st_wheel_command.steerable_joint_command.joint_name = st_wheel_desc.st_wheel.steerable_joint.name;
 

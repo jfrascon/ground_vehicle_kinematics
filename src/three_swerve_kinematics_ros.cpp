@@ -22,11 +22,6 @@ namespace ground_vehicle_kinematics
     twist_cb_logger_(this->get_logger().get_child("twist_cb")),
     joint_state_cb_logger_(this->get_logger().get_child("joint_state_cb"))
   {
-    // Typically we do not want this parameter to be pass through the yaml configuration file, since
-    // it depends on the specific robot, so it is better set directly when launching the node, via parameter in the
-    // launch file or in the CLI.
-    this->declare_parameter<std::string>("robot_prefix", "robot_");
-
     for(size_t index{0}; index < 3UL; ++index)
     {
       const std::string st_wheel_path{"steerable_wheels.steerable_wheel_" + std::to_string(index)};
@@ -70,8 +65,6 @@ namespace ground_vehicle_kinematics
     }
 
     this->declare_parameter<double>("initial_wheel_states_reception_period", 10.0);
-
-    robot_prefix_ = this->get_parameter("robot_prefix").as_string();
 
     auto initial_wheel_states_reception_period = this->get_parameter("initial_wheel_states_reception_period")
                                                    .get_value<double>();
@@ -393,7 +386,6 @@ namespace ground_vehicle_kinematics
     for(size_t index{0}; index < 3UL; ++index)
     {
       st_wheel_descs_[index] = process_st_wheel_descriptor(*this,
-                                                           robot_prefix_,
                                                            "steerable_wheels.steerable_wheel_" + std::to_string(index));
 
       RCLCPP_INFO(get_logger(),

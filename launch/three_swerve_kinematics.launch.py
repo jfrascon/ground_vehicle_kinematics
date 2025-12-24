@@ -1,5 +1,5 @@
 from launch import LaunchContext, LaunchDescription, LaunchDescriptionEntity  # noqa
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, SetLaunchConfiguration
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterFile
@@ -37,7 +37,6 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'node_options', default_value=rlh.default_node_options_str(), description=rlh.NODE_OPTIONS_DESC
             ),
-            OpaqueFunction(function=rlh.set_robot_prefix, kwargs={'robot_name_key': 'robot_name'}),
             OpaqueFunction(function=launch_three_swerve_kinematics_node),
         ]
     )
@@ -51,18 +50,18 @@ def launch_three_swerve_kinematics_node(ctx: LaunchContext) -> list[LaunchDescri
     if params_file:
         parameters.append(ParameterFile(params_file, allow_substs=True))
 
-    robot_name = LaunchConfiguration('robot_name').perform(ctx)
-
-    parameters.append(
-        {'use_sim_time': LaunchConfiguration('use_sim_time'), 'robot_prefix': rlh.create_robot_prefix(robot_name)}
-    )
+    parameters.append({'use_sim_time': LaunchConfiguration('use_sim_time')})
 
     node_options = rlh.process_node_options(LaunchConfiguration('node_options').perform(ctx))
     node_name = str(node_options['name']) or 'three_swerve_kinematics'
 
+    robot_name = LaunchConfiguration('robot_name').perform(ctx)
     robot_ns = rlh.create_robot_namespace(LaunchConfiguration('namespace').perform(ctx), robot_name)
 
     return [
+        # The parameter file uses variable expansion for robot_prefix, so we need to set the parameter 'robot_prefix'
+        # before adding the Node action that uses that parameter file.
+        SetLaunchConfiguration('robot_prefix', rlh.create_robot_prefix(robot_name)),
         Node(
             package='ground_vehicle_kinematics',
             executable='three_swerve_kinematics_node',
@@ -77,5 +76,5 @@ def launch_three_swerve_kinematics_node(ctx: LaunchContext) -> list[LaunchDescri
             emulate_tty=node_options['emulate_tty'],
             respawn=node_options['respawn'],
             respawn_delay=node_options['respawn_delay'],
-        )
+        ),
     ]
