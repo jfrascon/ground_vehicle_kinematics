@@ -69,9 +69,7 @@ def launch_three_swerve_kinematics_node(ctx: LaunchContext) -> list[LaunchDescri
             namespace=robot_ns,
             parameters=parameters,
             remappings=rlh.process_topic_remappings(LaunchConfiguration('topic_remappings').perform(ctx)),
-            ros_arguments=rlh.process_logging_options(
-                LaunchConfiguration('logging_options').perform(ctx), robot_ns, node_name
-            ),
+            ros_arguments=rlh.process_logging_options(LaunchConfiguration('logging_options').perform(ctx)),
             output=node_options['output'],
             emulate_tty=node_options['emulate_tty'],
             respawn=node_options['respawn'],
