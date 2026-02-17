@@ -55,6 +55,9 @@ def launch_three_swerve_kinematics_node(ctx: LaunchContext) -> list[LaunchDescri
     node_options = rlh.process_node_options(LaunchConfiguration('node_options').perform(ctx))
     node_name = str(node_options['name']) or 'three_swerve_kinematics'
 
+    if not rlh.is_valid_name(node_name):
+        raise RuntimeError(f"The name of the node must be ASCII [A-Za-z0-9_] only: '{node_name}'")
+
     robot_name = LaunchConfiguration('robot_name').perform(ctx)
     robot_ns = rlh.create_robot_namespace(LaunchConfiguration('namespace').perform(ctx), robot_name)
 
