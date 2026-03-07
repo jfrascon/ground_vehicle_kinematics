@@ -35,21 +35,37 @@
 \newcommand{\mat}[1]{\mathbf{#1}}    % matrices en negrita recta
 \newcommand{\trans}{\mathsf{T}}      % traspuesta, usar como ^{\trans}
 
-% \newcommand{\SO}{\mathrm{SO}}
-% \newcommand{\SE}{\mathrm{SE}}
-
 \newcommand{\skewsym}[1]{\left[#1\right]_\times}
 
 \newcommand{\SkewFrom}[3]{%
-  \begin{bmatrix}
-    0 & -#3 & #2 \\
-    #3 & 0 & -#1 \\
-    -#2 & #1 & 0
-  \end{bmatrix}%
+    \begin{bmatrix}
+        \phantom{-}0   & -#3            & \phantom{-}#2  \\
+        \phantom{-}#3  & \phantom{-}0   & -#1 \\
+        -#2            & \phantom{-}#1  & \phantom{-}0
+        \end{bmatrix}
 }
 
+\newcommand{\frameR}{\mathcal{R}}
+\newcommand{\ejeXR}{X_{\frameR}}
+\newcommand{\ejeYR}{Y_{\frameR}}
+
+\newcommand{\frameO}{\mathcal{O}}
+\newcommand{\ejeXO}{X_{\frameO}}
+\newcommand{\ejeYO}{Y_{\frameO}}
+
+\newcommand{\frameB}{\mathcal{B}}
+\newcommand{\ejeXB}{X_{\frameB}}
+\newcommand{\ejeYB}{Y_{\frameB}}
+
+\newcommand{\frameBi}{\mathcal{B}_i}
+\newcommand{\ejeXBi}{X_{\frameBi}}
+\newcommand{\ejeYBi}{Y_{\frameBi}}
+
+\newcommand{\frameWi}{\mathcal{W}_i}
+\newcommand{\ejeXWi}{X_{\frameWi}}
+\newcommand{\ejeYWi}{Y_{\frameWi}}
+
 \title{Cinemática de robots terrestres}
-% \author{ \includegraphics[width=0.5\linewidth]{images/logo.jpg} }
 \author{Juan Francisco Rascón Crespo}
 \date{\today}
 
@@ -59,450 +75,612 @@
 \begin{document}
 \maketitle
 
-% \thispagestyle{empty}
-% \newpage
+\begin{abstract}
+Este documento presenta un desarrollo analítico riguroso de la cinemática directa e inversa para robots terrestres con ruedas. A partir de la definición de un sistema de coordenadas base invariante para cada rueda, se formula un sistema de ecuaciones matriciales que relaciona las velocidades individuales con el estado de movimiento del chasis. Dado que las plataformas con múltiples ruedas generan habitualmente sistemas sobredeterminados, se aborda su resolución óptima mediante el método de mínimos cuadrados y la pseudoinversa de Moore-Penrose. El texto pone un énfasis fundamental en la implementación en software y la estabilidad numérica, justificando detalladamente el uso de la Descomposición en Valores Singulares (SVD) para eludir las inestabilidades algebraicas. Asimismo, se introduce el análisis del número de condición ($\kappa$) como herramienta diagnóstica crítica para distinguir entre la robustez computacional del algoritmo y la viabilidad física del diseño mecánico. Finalmente, este marco teórico generalizado se aplica a la formulación y resolución cinemática de diversas topologías estándar en la robótica móvil, abarcando desde sistemas de tracción diferencial y dirección Ackermann, hasta plataformas omnidireccionales con ruedas Mecanum y configuraciones \textit{swerve drive}.
+\end{abstract}
 
-% \tableofcontents
-% \newpage
+\section{Restricciones de movimiento impuestas por las ruedas}
 
-\section{Restricciones de las ruedas}
-\todo[inline]{Completar}
+En un robot terrestre, las ruedas imponen restricciones de movimiento:
 
-\section{Base con tres ruedas activas orientables (three swerve drive)}
-% \subsection{Simulación de los AGVs}
-% \label{sec:state-machine}
+\begin{itemize}
+    \item \textbf{Restricción de rodadura:} la rueda solo puede moverse en la dirección de rodadura.
+    \item \textbf{Restricción de no deslizamiento lateral (rueda convencional):} la velocidad de contacto entre rueda y suelo en la dirección perpendicular a la rodadura es nula.
+    \item \textbf{Ruedas omnidireccionales/suecas:} esta restricción lateral no aplica de forma estricta, ya que los rodillos permiten movimiento lateral pasivo.
+\end{itemize}
+
+Estas restricciones se pueden expresar matemáticamente como ecuaciones que relacionan la velocidad lineal y angular de la rueda con la velocidad del robot. Estas ecuaciones son fundamentales para el diseño de controladores y planificadores de movimiento para robots terrestres, ya que determinan cómo el robot puede moverse en su entorno.
+
+Apilando estas restricciones para cada rueda, se pueden derivar las ecuaciones de cinemática directa e inversa para diferentes configuraciones de robots terrestres, como robots con ruedas diferenciales, robots con ruedas omnidireccionales, y robots con ruedas activas orientables (swerve drive), entre otros.
+
+En la figura \ref{fig:wheel-placement} se muestra el posicionamiento 2D de una rueda respecto al sistema de coordenadas (SC) del robot, \(\frameR\).
+El término \(d\) representa la distancia desde el SC del robot hasta el punto de contacto de la rueda con el suelo.
+El término \(\alpha\) representa el ángulo que forma el eje \(\ejeXR\) con el vector de posición de la rueda, \(\vect{d}\), y por cómo se posiciona la rueda, es también el ángulo que forma el eje \(\ejeXR\) con el eje \(\ejeYO\). El eje \(\ejeXO\) es perpendicular al eje \(\ejeYO\) y su orientación con respecto al eje \(\ejeXR\) es \(\alpha - \frac{\pi}{2}\).
+
+\begin{equation}
+    \vect{d} = \begin{bmatrix} d\cos\alpha \\ d\sin\alpha \\ 0 \end{bmatrix}
+\end{equation}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\linewidth]{images/wheel_placement.png}
+    \caption{Posicionamiento 2D de una rueda respecto al SC del robot.}
+    \label{fig:wheel-placement}
+\end{figure}
+
+A continuación, se considera un ángulo \(\beta\) que permite orientar la rueda de la manera deseada, como se muestra en la figura \ref{fig:wheel-orientation}.
+La orientación final de la rueda viene dada por el ángulo \(\psi\), formado entre el eje \(\ejeXR\) y el eje \(\ejeXB\).
+\[
+    \psi = \alpha + \beta - \frac{\pi}{2}
+\]
+
+y, para simplificar la notación se introduce el símbolo \(\phi\) como:
+
+\[
+    \phi = \alpha + \beta, \quad \psi = \phi - \frac{\pi}{2}
+\]
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\linewidth]{images/wheel_orientation.png}
+    \caption{Orientación de la rueda mediante el ángulo \(\beta\).}
+    \label{fig:wheel-orientation}
+\end{figure}
+
+El SC \(\frameB\) se denomina \textbf{SC base de la rueda}, y su posición y orientación se mantiene constante respecto del SC \(\frameR\). En ruedas no orientables, el eje \(\ejeXB\) determina la dirección de rodadura de la rueda y el eje \(\ejeYB\) es el eje de giro de la rueda. En ruedas orientables, el SC fijo a la rueda, \(\frameWi\), va cambiando su orientación (ángulo \(\theta\)) respecto al SC \(\frameB\) y sólo cuando \(\theta=0\) coinciden. Ver figura \ref{fig:steerable-wheel}.
+
+La velocidad lineal de la base, expresada en el SC del robot, se denota como:
+
+\begin{equation}
+    {}^\frameR \vect{V}_r = \begin{bmatrix} {}^\frameR V_{r,x} \\ {}^\frameR V_{r,y} \\ 0 \end{bmatrix}
+    \label{eq:rigid-velocity}
+\end{equation}
+
+y se expresa en \si{\meter\per\second}.
+
+La velocidad angular de la base se denota como:
+
+\begin{equation}
+    \boldsymbol{\omega}_r = \begin{bmatrix} 0 \\ 0 \\ \omega_{r,z} \end{bmatrix}
+    \label{eq:rigid-angular-velocity}
+\end{equation}
+
+y se expresa en \si{\radian\per\second}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\linewidth]{images/wheel_vels.png}
+    \caption{Velocidades lineales y angulares relevantes para la rueda.}
+    \label{fig:wheel-vels}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\linewidth]{images/steerable_wheel.png}
+    \caption{Rueda convencional orientable rotando un ángulo \(\theta\) respecto al SC \(\frameB\) para conseguir la dirección de rodadura adecuada.}
+    \label{fig:steerable-wheel}
+\end{figure}
+
+La velocidad lineal de cada rueda \(i\), expresada en el SC \(\frameR\), se denota como:
+\begin{equation}
+    {}^\frameR \vect{V}_{i}  = {}^\frameR \vect{V}_r + \vect{\omega}_r \times {}^\frameR \vect{d}_{i} = {}^\frameR \vect{V}_r + \skewsym{\boldsymbol{\omega}_r}\,{}^\frameR \vect{d}_{i}
+    \label{eq:wheel-velocity}
+\end{equation}
+
+donde \({}^\frameR \vect{d}_{i}\) es el vector de posición de la rueda \(i\) respecto del SC \(\frameR\), y \(\skewsym{\boldsymbol{\omega}_r}\) es el operador antisimétrico que representa el producto vectorial con \(\boldsymbol{\omega}_r\).
+
+El producto vectorial entre \(\boldsymbol{\omega}_r\) y \({}^\frameR \vect{d}_{i}\) puede escribirse como un producto matricial mediante el operador antisimétrico \([\cdot]_{\times}\):
+\(\boldsymbol{\omega}_r \times {}^\frameR \vect{d}_{i} = \skewsym{\boldsymbol{\omega}_r}\,{}^\frameR \vect{d}_{i}\), y
+\(\skewsym{\boldsymbol{\omega}_r}\) se define como:
+
+\begin{equation}
+    \skewsym{\boldsymbol{\omega}_r} \triangleq
+    \SkewFrom{\omega_{r,x}}{\omega_{r,y}}{\omega_{r,z}}
+\end{equation}
+
+\begin{equation}
+    \begin{aligned}
+        \boldsymbol{\omega}_r \times {}^\frameR \vect{d}_{i} & = \skewsym{\boldsymbol{\omega}_r}\,{}^\frameR \vect{d}_{i} \\
+                                                             & = \begin{bmatrix}
+                                                                     0            & -\omega_{r,z} & 0 \\
+                                                                     \omega_{r,z} & \phantom{-}0  & 0 \\
+                                                                     0            & \phantom{-}0  & 0
+                                                                 \end{bmatrix} \begin{bmatrix}
+                                                                                   d_{i}\cos\alpha_i \\
+                                                                                   d_{i}\sin\alpha_i \\
+                                                                                   0
+                                                                               \end{bmatrix}                         \\
+                                                             & = \begin{bmatrix}
+                                                                     -\omega_{r,z} d_{i} \sin\alpha_i           \\
+                                                                     \phantom{-}\omega_{r,z} d_{i} \cos\alpha_i \\
+                                                                     0
+                                                                 \end{bmatrix}
+    \end{aligned}
+\end{equation}
+
+\begin{equation}
+    \begin{aligned}
+        {}^\frameR \vect{V}_{i}
+        = {}^\frameR \vect{V}_r + \boldsymbol{\omega}_r \times {}^\frameR \vect{d}_i & = \begin{bmatrix}
+                                                                                             {}^\frameR V_{r,x} - \omega_{r,z} d_{i} \sin\alpha_i \\
+                                                                                             {}^\frameR V_{r,y} + \omega_{r,z} d_{i} \cos\alpha_i
+                                                                                         \end{bmatrix} \\
+                                                                                     & = \begin{bmatrix}
+                                                                                             1 & 0 & -d_{i} \sin\alpha_i           \\
+                                                                                             0 & 1 & \phantom{-}d_{i} \cos\alpha_i
+                                                                                         \end{bmatrix} \begin{bmatrix}
+                                                                                                           {}^\frameR V_{r,x} \\
+                                                                                                           {}^\frameR V_{r,y} \\
+                                                                                                           \omega_{r,z}
+                                                                                                       \end{bmatrix}
+    \end{aligned}
+    \label{eq:wheel-velocity-expanded}
+\end{equation}
+
+El vector \({}^\frameR \vect{V}_{i}\) representa la velocidad lineal de la rueda \(i\) en el SC \(\frameR\).
+Para aplicar las restricciones de movimiento a cada rueda, se debe expresar su velocidad en su SC base, \(\frameBi\), \({}^{\frameBi} V_{i}\).
+
+\begin{equation}
+    {}^{\frameBi} \vect{V}_{i} = {}^{\frameBi} R(\psi_i)_3 {}^\frameR \vect{V}_{i}
+    \label{eq:vwheel-transform}
+\end{equation}
+
+donde la matriz de rotación \({}^{\frameBi}  R(\psi_i)_3\) representa la orientación del SC \(\frameR\) en el SC \(\frameBi\), y se usa para convertir vectores expresados en el SC \(\frameR\) al SC base de la rueda \(i\), \(\frameBi\).
+
+La matriz que se conoce a priori es:
+
+\begin{equation}
+    {}^\frameR  R(\psi_i)_{\frameBi} =
+    \begin{bmatrix}
+        \cos\psi_i & -\sin\psi_i           \\
+        \sin\psi_i & \phantom{-}\cos\psi_i
+    \end{bmatrix}
+\end{equation}
+
+con \(\psi_i = \phi_i - \frac{\pi}{2} = \alpha_i + \beta_i - \frac{\pi}{2}\), que representa la orientación del SC \(\frameBi\) respecto del SC \(\frameR\).
+
+Dado que las matrices de rotación son ortonormales, su inversa es igual a su traspuesta, por lo que:
+
+\begin{equation}
+    {}^{\frameBi} R(\psi_i)_{\frameR} = \left({}^\frameR  R(\psi_i)_{\frameBi}\right)^{-1} = \left({}^\frameR  R(\psi_i)_{\frameBi}\right)^{\trans} =
+    \begin{bmatrix}
+        \phantom{-}\cos\psi_i & \sin\psi_i \\
+        -\sin\psi_i           & \cos\psi_i
+    \end{bmatrix}
+\end{equation}
+
+A continuación se aplican las siguientes identidades trigonométricas a la matriz \({}^{\frameBi} R(\psi_i)_{\frameR}\):
+
+\[
+    \begin{aligned}
+        \cos\psi_i & = \cos\left(\phi_i - \frac{\pi}{2}\right) = \phantom{-}\sin\phi_i \\
+        \sin\psi_i & = \sin\left(\phi_i - \frac{\pi}{2}\right) = -\cos\phi_i
+    \end{aligned}
+\]
+
+quedando finalmente:
+
+\begin{equation}
+    {}^{\frameBi}  R(\phi_i)_{\frameR} =
+    \begin{bmatrix}
+        \sin\phi_i & -\cos\phi_i           \\
+        \cos\phi_i & \phantom{-}\sin\phi_i
+    \end{bmatrix}
+\end{equation}
+
+\begin{equation}
+    \begin{aligned}
+        {}^{\frameBi} \vect{V}_i & = {}^{\frameBi}  R(\phi_i)_{\frameR} {}^\frameR \vect{V}_{i} \\
+                                 & = \begin{bmatrix}
+                                         \sin\phi_i & -\cos\phi_i           \\
+                                         \cos\phi_i & \phantom{-}\sin\phi_i
+                                     \end{bmatrix} \begin{bmatrix}
+                                                       1 & 0 & -d_{i} \sin\alpha_i           \\
+                                                       0 & 1 & \phantom{-}d_{i} \cos\alpha_i
+                                                   \end{bmatrix} \begin{bmatrix}
+                                                                     {}^\frameR V_{r,x} \\
+                                                                     {}^\frameR V_{r,y} \\
+                                                                     \omega_{r,z}
+                                                                 \end{bmatrix}
+    \end{aligned}
+\end{equation}
+
+La velocidad \({}^{\frameBi} \vect{V}_i\) se puede expresar, de forma general, como:
+
+\begin{equation}
+    {}^{\frameBi} \vect{V}_i = \begin{bmatrix}
+        v_{i\parallel} \\
+        v_{i\perp}
+    \end{bmatrix}
+\end{equation}
+
+siendo \(v_{i\parallel}\) la componente de velocidad en la dirección de rodadura, \(\ejeXWi\), y \(v_{i\perp}\) la componente de velocidad perpendicular a la dirección de rodadura (dicho de otro modo, la velocidad lateral de la rueda, paralela al eje \(\ejeYWi\)).
+
+\begin{equation}
+    \begin{bmatrix}
+        v_{i\parallel} \\
+        v_{i\perp}
+    \end{bmatrix} = \begin{bmatrix}
+        \sin\phi_i & -\cos\phi_i           \\
+        \cos\phi_i & \phantom{-}\sin\phi_i
+    \end{bmatrix} \begin{bmatrix}
+        1 & 0 & -d_{i} \sin\alpha_i           \\
+        0 & 1 & \phantom{-}d_{i} \cos\alpha_i
+    \end{bmatrix} \begin{bmatrix}
+        {}^\frameR V_{r,x} \\
+        {}^\frameR V_{r,y} \\
+        \omega_{r,z}
+    \end{bmatrix}
+    \label{eq:wheel-constraints-compact}
+\end{equation}
+
+\[
+    \begin{bmatrix}
+        v_{i\parallel} \\
+        v_{i\perp}
+    \end{bmatrix} = \begin{bmatrix}
+        \sin\phi_i & -\cos\phi_i           & -d_i(\phantom{-}\sin\alpha_i\sin\phi_i + \cos\alpha_i\cos\phi_i) \\
+        \cos\phi_i & \phantom{-}\sin\phi_i & \phantom{-}d_i(-\sin\alpha_i\cos\phi_i + \cos\alpha_i\sin\phi_i)
+    \end{bmatrix} \begin{bmatrix}
+        {}^{\frameR}V_{r,x} \\
+        {}^{\frameR}V_{r,y} \\
+        \omega_{r,z}
+    \end{bmatrix}
+\]
+
+A continuación se aplican las siguientes identidades trigonométricas:
+\[
+    \begin{aligned}
+        \phantom{-}\sin\alpha_i\sin\phi_i + \cos\alpha_i\cos\phi_i & = \cos(\phi_i - \alpha_i) = \cos((\alpha_i + \beta_i) - \alpha_i) = \cos\beta_i \\
+        -\sin\alpha_i\cos\phi_i + \cos\alpha_i\sin\phi_i           & = \sin(\phi_i - \alpha_i) = \sin((\alpha_i + \beta_i) - \alpha_i) = \sin\beta_i
+    \end{aligned}
+\]
+
+Resultando finalmente:
+
+\begin{equation}
+    \begin{bmatrix}
+        v_{i\parallel} \\
+        v_{i\perp}
+    \end{bmatrix} = \begin{bmatrix}
+        \sin\phi_i & -\cos\phi_i           & -d\cos\beta_i           \\
+        \cos\phi_i & \phantom{-}\sin\phi_i & \phantom{-}d\sin\beta_i
+    \end{bmatrix} \begin{bmatrix}
+        {}^\frameR V_{r,x} \\
+        {}^\frameR V_{r,y} \\
+        \omega_{r,z}
+    \end{bmatrix}
+    \label{eq:wheel-constraints-final}
+\end{equation}
+
+Para cada rueda \(i\) se obtiene un sistema de 2 ecuaciones lineales con 3 incógnitas (\({}^\frameR V_{r,x}\), \({}^\frameR V_{r,y}\) y \(\omega_{r,z}\)).
+
+En general, para \(N\) ruedas se obtienen \(2N\) ecuaciones lineales y 3 incógnitas. Por tanto, para \(N \ge 2\) el sistema es sobredeterminado.
+
+Dependiendo de si las ruedas usadas en una plataforma son no orientables, orientables, mecanum u omnidireccionales, se imponen diferentes restricciones a \(v_{i\parallel}\) y \(v_{i\perp}\), lo que da lugar a diferentes formas de resolver la cinemática directa e inversa.
+
+En el estudio de cada plataforma concreta, se aplicarán las restricciones específicas de cada tipo de rueda a las ecuaciones anteriores para obtener las fórmulas de cinemática directa e inversa correspondientes.
+
+\section{Consideraciones generales sobre cinemática directa e inversa}
+\label{sec:general-considerations}
+
+En general, la cinemática directa e inversa de un robot terrestre queda definido mediante una expresión matricial de la forma:
+
+\begin{equation}
+    A\mathbf{x}=\mathbf{b}
+\end{equation}
+
+donde:
+
+\[
+    A \in \mathbb{R}^{2N \times 3}, \quad \mathbf{x} \in \mathbb{R}^3, \quad \mathbf{b} \in \mathbb{R}^{2N}
+\]
+
+\[
+    A = \begin{bmatrix}
+        \sin\phi_1 & -\cos\phi_1           & -d_1\cos\beta_1           \\
+        \cos\phi_1 & \phantom{-}\sin\phi_1 & \phantom{-}d_1\sin\beta_1 \\
+        \vdots     & \vdots                & \vdots                    \\
+        \sin\phi_N & -\cos\phi_N           & -d_N\cos\beta_N           \\
+        \cos\phi_N & \phantom{-}\sin\phi_N & \phantom{-}d_N\sin\beta_N
+    \end{bmatrix}, \quad \mathbf{x} =
+    \begin{bmatrix}
+        {}^\frameR V_{r,x} \\
+        {}^\frameR V_{r,y} \\
+        \omega_{r,z}
+    \end{bmatrix}, \quad \mathbf{b} = \begin{bmatrix}
+        v_{1\parallel} \\
+        v_{1\perp}     \\
+        \vdots         \\
+        v_{N\parallel} \\
+        v_{N\perp}
+    \end{bmatrix}
+\]
+
+Dado que para cualquier robot con \(N \ge 2\) ruedas se obtienen \(2N\) ecuaciones y únicamente 3 incógnitas, nos encontramos ante un sistema lineal sobredeterminado.
+
+En un escenario ideal puramente matemático, bastaría con tomar cualquier subconjunto de 3 ecuaciones linealmente independientes para resolver el sistema y hallar la velocidad del chasis, \(\mathbf{x}\). Sin embargo, en la implementación real de un robot terrestre, las ecuaciones nunca encajan de forma perfecta debido a imperfecciones como:
+
+\begin{itemize}
+    \item Ruido y cuantización en la lectura de los sensores (encoders).
+    \item Pequeños deslizamientos de las ruedas sobre el terreno.
+    \item Ligeras desviaciones en la calibración geométrica de la base.
+\end{itemize}
+
+Por tanto, el sistema no se resuelve buscando una solución algebraica exacta, sino buscando la estimación \(\hat{\mathbf{x}}\) que minimice el error cuadrático global de todas las ruedas simultáneamente:
+
+\begin{equation}
+    \hat{\mathbf{x}} = \arg\min_{\mathbf{x}} \|A\mathbf{x} - \mathbf{b}\|^2
+\end{equation}
+
+La solución a este problema de mínimos cuadrados viene dada por la expresión conocida como Ecuaciones Normales, que se obtiene de un proceso de búsqueda del mínimo de la función de error (derivando e igualando a cero):
+
+\begin{equation}
+    A^{\trans} A \mathbf{x} = A^{\trans} \mathbf{b}
+\end{equation}
+
+Por tanto, la solución óptima se obtiene mediante:
+
+\begin{equation}
+    \hat{\mathbf{x}} = (A^{\trans}A)^{-1}A^{\trans}\mathbf{b} = A^+\mathbf{b}
+\end{equation}
+
+donde \(A^+\) se denomina la pseudoinversa de Moore-Penrose de la matriz \(A\).
+
+Desde el punto de vista del cálculo numérico computacional, invertir directamente la matriz \((A^{\trans}A)\) puede ser inestable si la matriz original \(A\) está mal condicionada. Una matriz se considera mal condicionada cuando pequeñas variaciones o ruidos en los datos de entrada (el vector \(\mathbf{b}\)) se amplifican drásticamente, provocando cálculos erráticos en la solución resultante \(\hat{\mathbf{x}}\).
+
+El mal comportamiento numérico que puede surgir al usar la fórmula de ecuaciones normales se debe a que el término \((A^{\trans}A)^{-1}\allowbreak A^{\trans}\) eleva al cuadrado los valores singulares de \(A\). Si \(A\) tiene un valor singular pequeño, cercano a cero, al elevarlo al cuadrado se vuelve aún más pequeño. Al intentar invertir ese valor, el ordenador divide por un número casi cero, lo que hace que los resultados se disparen a infinito y se pierda toda la precisión en la solución.
+
+Aunque no es estrictamente necesario para el desarrollo de la cinemática, por completitud se indica que para averiguar la robustez geométrica de la matriz \(A\) se utiliza el cociente entre su valor singular máximo y mínimo (\(\kappa = \frac{\sigma_{\max}}{\sigma_{\min}}\)), denominado \textbf{número de condición}, \(\kappa(A)\). A modo de referencia:
+
+\begin{itemize}
+    \item \(\kappa = 1\): \(A\) es la matriz perfecta (ejemplo: la matriz Identidad o una matriz de rotación pura). No hay pérdida de precisión.
+    \item \(1 < \kappa < 10^2\): \(A\) está bien condicionada. El sistema es robusto; los errores de los sensores no se amplificarán significativamente.
+    \item \(10^3 < \kappa < 10^6\): \(A\) está medianamente mal condicionada. Se debe tener precaución, ya que los métodos simples como invertir \((A^{\trans}A)\) pueden empezar a dar resultados imprecisos.
+    \item \(\kappa \approx 10^{12} \text{ a } 10^{15}\): \(A\) está mal condicionada. La matriz es casi singular (sus filas/columnas son casi dependientes).
+    \item \(\kappa > 10^{16}\): \(A\) es singular e inutilizable. Para una computadora que trabaja con precisión doble (64 bits), esto significa que la matriz no se puede invertir con fiabilidad.
+\end{itemize}
+
+Para evitar estos problemas de estabilidad numérica que podrían llegar a darse, en la práctica se obtiene la pseudoinversa \(A^+\) aplicando la Descomposición en Valores Singulares (SVD) a la matriz original \(A\). La SVD es el método numérico más robusto y seguro, ya que evita por completo el producto \((A^{\trans}A)\) y es capaz de manejar matrices casi-singulares (situaciones donde las ecuaciones geométricas del robot son tan parecidas o redundantes que el sistema está al borde de no poder invertirse) sin que los cálculos resultantes se disparen a infinito. Este método funciona incluso si la matriz \(A\) no tiene rango completo (si algunas de las ecuaciones son directamente contradictorias).
+
+Sin embargo, es fundamental hacer una distinción crítica entre la robustez matemática del software y la viabilidad física del robot. Si al evaluar la matriz geométrica constante \(A\) durante la fase de diseño se obtiene un número de condición elevado (por ejemplo, \(\kappa > 10^3\), y críticamente si \(\kappa > 10^6\)), \textbf{sucederá que, aunque el algoritmo SVD evite el colapso del programa devolviendo una solución matemática estable (al truncar los valores casi nulos), en realidad se estará enmascarando un defecto grave en el diseño mecánico.} Físicamente, esto significa que la disposición constructiva de las ruedas (sus distancias \(d_i\) o ángulos de montaje \(\alpha_i, \beta_i\)) genera una cinemática degenerada, donde el chasis pierde capacidad para moverse de forma independiente en todos sus grados de libertad, o donde las direcciones de rodadura entran en conflicto directo. En este escenario, aunque el software entregue un resultado numérico aparentemente válido, el robot físico sufrirá derivas incontrolables, estrés mecánico y movimientos erráticos ante el más mínimo ruido en los encoders. Por tanto, la SVD no debe usarse como un pretexto para ignorar una mala geometría; si el número de condición inicial es excesivamente alto, la solución ineludible pasa por replantear la ubicación y orientación base de las ruedas en el diseño CAD hasta lograr un sistema bien condicionado (idealmente \(\kappa \le 100\)).
+
+La SVD descompone la matriz en \(A = U \Sigma V^{\trans}\), permitiendo construir la pseudoinversa directamente como \(A^+ = V \Sigma^+ U^{\trans}\).
+
+\textbf{Demostración:}
+
+Si \(A = U \Sigma V^{\trans}\), se aplica la propiedad de la transpuesta para un producto de matrices: \((X Y Z)^{\trans} = Z^{\trans} Y^{\trans} X^{\trans}\) (el orden se invierte).
+
+\begin{equation}
+    A^{\trans} = (V^{\trans})^{\trans} \Sigma^{\trans} U^{\trans}
+\end{equation}
+
+Transponer dos veces devuelve la matriz original (\((V^{\trans})^{\trans} = V\)), y como \(\Sigma\) es una matriz diagonal que no cambia al transponerse (\(\Sigma^{\trans} = \Sigma\))\footnote{Para que la igualdad \(\Sigma^{\trans} = \Sigma\) sea estrictamente cierta, \(\Sigma\) tiene que ser una matriz cuadrada. En sistemas sobredeterminados, donde \(A\) es una matriz rectangular de \(M \times N\), la matriz \(\Sigma\) original es rectangular de \(M \times N\) y \(\Sigma^{\trans}\) sería de \(N \times M\), por lo que no se cumpliría la igualdad. Sin embargo, en la práctica, para resolver estos sistemas se suele emplear la SVD Reducida (o \textit{Thin SVD}), que recorta las filas de ceros de la matriz \(\Sigma\), convirtiéndola en una matriz cuadrada de tamaño \(N \times N\). De esta forma, sí se cumple que \(\Sigma^{\trans} = \Sigma\) en la SVD Reducida, lo que permite desarrollar la fórmula \(A^+ = V \Sigma^+ U^{\trans}\) sin conflictos dimensionales. En la librería Eigen de C++, la combinación de opciones \texttt{ComputeThinU | ComputeThinV} realiza exactamente este cálculo.}, se obtiene:
+
+\begin{equation}
+    A^{\trans} = V \Sigma U^{\trans}
+\end{equation}
+
+Sustituyendo en el producto \(A^{\trans} A\):
+
+\begin{equation}
+    A^{\trans} A = (V \Sigma U^{\trans}) (U \Sigma V^{\trans})
+\end{equation}
+
+Por la propiedad asociativa de las matrices, se pueden omitir los paréntesis internos:
+
+\begin{equation}
+    A^{\trans} A = V \Sigma (U^{\trans} U) \Sigma V^{\trans}
+\end{equation}
+
+La matriz \(U\) es ortogonal, lo que significa que su transpuesta multiplicada por sí misma da como resultado la matriz Identidad (\(U^{\trans} U = I\)):
+
+\begin{equation}
+    A^{\trans} A = V \Sigma I \Sigma V^{\trans}
+\end{equation}
+
+Multiplicar por la matriz Identidad no altera el resultado, y \(\Sigma\) multiplicada por sí misma es \(\Sigma^2\) (que equivale a elevar al cuadrado los valores de su diagonal):
+
+\begin{equation}
+    A^{\trans} A = V \Sigma^2 V^{\trans}
+\end{equation}
+
+A continuación, se aplica la inversa a toda la expresión utilizando la propiedad de la inversa para un producto: \((X Y Z)^{-1} = Z^{-1} Y^{-1} X^{-1}\).
+
+\begin{equation}
+    (A^{\trans} A)^{-1} = (V^{\trans})^{-1} (\Sigma^2)^{-1} V^{-1}
+\end{equation}
+
+Como \(V\) también es una matriz ortogonal, su inversa es igual a su transpuesta, \(V^{-1} = V^{\trans}\), y, por tanto, \((V^{\trans})^{-1} = V\). La inversa de una matriz diagonal \(\Sigma^2\) se denota simplemente como \(\Sigma^{-2}\) (que consiste en invertir los valores elevados al cuadrado de su diagonal). Sustituyendo estas propiedades, se obtiene:
+
+\begin{equation}
+    (A^{\trans} A)^{-1} = V \Sigma^{-2} V^{\trans}
+\end{equation}
+
+Se multiplica ahora por \(A^{\trans}\) por la derecha para completar la expresión de las Ecuaciones Normales:
+
+\begin{equation}
+    (A^{\trans} A)^{-1} A^{\trans} = (V \Sigma^{-2} V^{\trans}) (V \Sigma U^{\trans})
+\end{equation}
+
+Se quitan de nuevo los paréntesis internos por la propiedad asociativa:
+
+\begin{equation}
+    (A^{\trans} A)^{-1} A^{\trans} = V \Sigma^{-2} (V^{\trans} V) \Sigma U^{\trans}
+\end{equation}
+
+Nuevamente, dado que \(V\) es ortogonal, \(V^{\trans} V = I\). El término central desaparece:
+
+\begin{equation}
+    (A^{\trans} A)^{-1} A^{\trans} = V \Sigma^{-2} \Sigma U^{\trans}
+\end{equation}
+
+En este punto se tiene \(\Sigma^{-2}\) multiplicado por \(\Sigma\). Debido a que ambas son matrices diagonales, la operación equivale a multiplicar cada elemento de la diagonal de \(\Sigma^{-2}\) por el correspondiente elemento de la diagonal de \(\Sigma\). De modo que cada elemento de la diagonal resultante es el valor original de \(\Sigma\) elevado a \(-2 + 1 = -1\) (es decir, el inverso de los valores originales de \(\Sigma\)). A esta matriz diagonal resultante se le denota como \(\Sigma^+\):
+
+\begin{itemize}
+    \item Si \(A\) \textbf{no} tiene rango completo, \(\Sigma^+\) se define como la matriz diagonal que contiene el inverso de los valores singulares no nulos de \(A\), y ceros en las posiciones correspondientes a los valores singulares nulos.
+    \item Si \(A\) \textbf{tiene} rango completo, entonces \(\Sigma^+\) es en realidad \(\Sigma^{-1}\) (una inversa propiamente dicha), que es la matriz diagonal que contiene el inverso de todos los valores singulares de \(A\).
+\end{itemize}
+
+Finalmente, sustituyendo \(\Sigma^+\), se llega a la expresión:
+
+\begin{equation}
+    (A^{\trans} A)^{-1} A^{\trans} = V \Sigma^+ U^{\trans}
+\end{equation}
+
+Como se comentó anteriormente, el problema computacional surge cuando el ordenador evalúa la expresión \((A^{\trans} A)^{-1}\) directamente, ya que debe elevar al cuadrado valores singulares que podrían ser muy cercanos a cero. Al intentar invertir esos valores casi nulos elevados al cuadrado, se producen desbordamientos numéricos. Usando la fórmula final directa \(V \Sigma^+ U^{\trans}\) proporcionada por la SVD, el algoritmo únicamente invierte los valores originales (\(\Sigma^+\)), manteniendo el sistema estable en todo momento.
+
+\section{Cinemática de un robot con base three swerve drive}
 
 La base con tres ruedas activas orientables (three swerve drive) es un sistema de locomoción omnidireccional. Permite que un robot terrestre se mueva en cualquier dirección sin tener que cambiar antes la orientación del chasis. Cada rueda se orienta de forma independiente, por lo que el robot gana maniobrabilidad y flexibilidad.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1.0\linewidth]{images/three_drive_configuration.png}
+    \includegraphics[width=1.0\linewidth]{images/three_swerve_drive_configuration.png}
     \caption{Configuraciones comunes de las ruedas en un sistema three swerve drive (izquierda: configuración Y-invertida, derecha: configuración Y)}
-    \label{fig:three-swerve-drive-configuration}
+    \label{fig2:three-swerve-drive-configuration}
 \end{figure}
 
-La disposición típica de las ruedas es triangular. Las dos configuraciones más comunes son:
+Todas las ruedas tienen el mismo radio \(r\) y están situadas a la misma distancia \(d\) del centro de la base.
 
-\begin{itemize}
-    \item Configuración Y-invertida: Una rueda se coloca a distancia $d$ del centro sobre el eje $X_R$ positivo. Las otras dos se colocan también a distancia $d$, en los ángulos $\alpha^\circ$ y $-\alpha^\circ$ respecto del eje $X_R$ positivo, con $\alpha \in [90^\circ, 180^\circ)$.
-    \item Configuración Y: Una rueda se coloca a distancia $d$ del centro sobre el eje $X_R$ negativo. Las otras dos se colocan también a distancia $d$, en los ángulos $\alpha^\circ$ y $-\alpha^\circ$ respecto del eje $X_R$ positivo, con $\alpha \in (0^\circ, 90^\circ]$.
-\end{itemize}
-
-La figura \ref{fig:three-swerve-drive-configuration} muestra ambas configuraciones.
-
-A continuación se presentan las expresiones de la cinemática inversa y directa de un robot con tres ruedas activas para las configuraciones anteriores. También puede considerarse una formulación más general, con distancias al centro distintas o con ruedas en ángulos no simétricos. Sin embargo, estas configuraciones son menos frecuentes y, en este contexto, solo complican las expresiones sin aportar ventajas prácticas, ya que, en la industria, se emplean principalmente las configuraciones descritas anteriormente.
-
-Para la configuración Y-invertida, se usará $i \in \{F,L,R\}$ para identificar cada rueda.
-Para la configuración Y, se usará $i \in \{B,L,R\}$.
-
-La velocidad lineal de la base se denota como:
-\begin{equation}
-    \vect{V} = \begin{bmatrix} V_x \\ V_y \\ 0 \end{bmatrix}
-    \label{eq:rigid-velocity}
-\end{equation}
-y se expresa en \si{\meter\per\second}.
-
-La velocidad angular de la base se denota como:
-\begin{equation}
-    \boldsymbol{\omega} = \begin{bmatrix} 0 \\ 0 \\ \omega_z \end{bmatrix}
-    \label{eq:rigid-angular-velocity}
-\end{equation}
-
-La velocidad lineal de cada rueda $i$ se expresa como:
-\begin{equation}
-    \begin{aligned}
-        \vect{V}_i & = \vect{V} + \vect{\omega} \times \vect{d}_i           \\
-                   & = \vect{V} + \skewsym{\boldsymbol{\omega}}\,\vect{d}_i
-    \end{aligned}
-    \label{eq:wheel-velocity}
-\end{equation}
-donde $\vect{d}_i$ es el vector de posición de la rueda $i$ respecto al centro de la base.
-
-El producto vectorial entre $\boldsymbol{\omega}$ y $\vect{d}_i$ puede escribirse como un producto matricial mediante el operador antisimétrico $[\cdot]_{\times}$:
-$\boldsymbol{\omega} \times \vect{d}_i = \skewsym{\boldsymbol{\omega}}\,\vect{d}_i$, y
-$\skewsym{\boldsymbol{\omega}}$ se define como:
+Además, en este caso particular se impone:
 \[
-    \skewsym{\boldsymbol{\omega}} \triangleq
-    \SkewFrom{\omega_x}{\omega_y}{\omega_z}
+    \psi_i = \phi_i - \frac{\pi}{2} = 0 \quad \Longrightarrow \quad \phi_i = \alpha_i + \beta_i = \frac{\pi}{2}, \quad \beta_i = \frac{\pi}{2} - \alpha_i
 \]
 
-Por lo tanto, considerando $\boldsymbol{\omega}=\begin{bmatrix}0&0&\omega_z\end{bmatrix}^{\trans}$ y $\vect{d}_i=\begin{bmatrix}d\cos\alpha_i&d\sin\alpha_i&0\end{bmatrix}^{\trans}$:
-\begin{equation}
-    \vect{V}_i
-    = \vect{V}
-    + \begin{bmatrix}
-        -\omega_z d\sin\alpha_i \\
-        \omega_z d\cos\alpha_i  \\
-        0
+y por tanto:
+\[
+    {}^{\frameBi} R\left(\phi_i = \frac{\pi}{2}\right)_{\frameR} = \begin{bmatrix}
+        \sin\frac{\pi}{2} & -\cos\frac{\pi}{2}           \\
+        \cos\frac{\pi}{2} & \phantom{-}\sin\frac{\pi}{2}
+    \end{bmatrix} = \begin{bmatrix}
+        1 & 0 \\
+        0 & 1
     \end{bmatrix}
-    = \begin{bmatrix}
-        V_x - \omega_z d\sin\alpha_i \\
-        V_y + \omega_z d\cos\alpha_i \\
-        0
-    \end{bmatrix}
-    \label{eq:wheel-velocity-expanded}
-\end{equation}
+\]
 
-La magnitud de la velocidad lineal de cada rueda $i$ se expresa como:
+Para la configuración Y-invertida:\
+\begin{itemize}
+    \item \(\alpha \in \left[\frac{\pi}{2}, \pi\right)\) y \(d > 0\)
+    \item Rueda frontal \((i = 1)\):
+          \[
+              \alpha_1 = 0,\quad \vect{d}_1=(d,0),\quad \beta_1=\frac{\pi}{2}
+          \]
+    \item Rueda izda \((i = 2)\):
+          \[
+              \alpha_2=\alpha, \quad \vect{d}_2=(d\cos\alpha,\ d\sin\alpha),\quad \beta_2=\frac{\pi}{2}-\alpha
+          \]
+    \item Rueda dcha \((i = 3)\):
+          \[
+              \alpha_3=-\alpha, \quad \vect{d}_3=(d\cos\alpha,\ -d\sin\alpha),\quad \beta_3=\frac{\pi}{2}+\alpha
+          \]
+\end{itemize}
+
+Para la configuración Y:\
+\begin{itemize}
+    \item \(\alpha \in \left(0, \frac{\pi}{2}\right]\) y \(d > 0\)
+    \item Rueda trasera \((i = 1)\):
+          \[
+              \alpha_1 = \pi,\quad \vect{d}_1 = (-d, 0),\quad \beta_1 = -\frac{\pi}{2}
+          \]
+    \item Rueda izda \((i = 2)\):
+          \[
+              \alpha_2 = \alpha, \quad \vect{d}_2 = (d\cos\alpha,\ d\sin\alpha), \quad \beta_2 = \frac{\pi}{2} - \alpha
+          \]
+    \item Rueda dcha \((i = 3)\):
+          \[
+              \alpha_3 = -\alpha, \quad \vect{d}_3 = (d\cos\alpha,\ -d\sin\alpha), \quad \beta_3 = \frac{\pi}{2} + \alpha
+          \]
+\end{itemize}
+
+\subsection{Cinemática inversa del three swerve}
+
+Conocido el vector de velocidad del chasis \({}^\frameR \vect{V}_r\), se obtiene la velocidad de cada rueda \(i\) en su SC base \(\frameBi\), \({}^{\frameBi}\vect{V}_i = [v_{i\parallel}, v_{i\perp}]^{\trans}\), aplicando la transformación de coordenadas de la ecuación \ref{eq:wheel-constraints-final}.
+
+Dado que cada rueda es orientable, se puede calcular el ángulo de orientación \(\theta_i\) que debe adoptar cada rueda, respecto del SC base \(\frameBi\), para que su dirección de rodadura quede alineada con el vector de velocidad \({}^{\frameBi} \vect{V}_i\)
+
 \begin{equation}
-    \begin{aligned}
-        \|\vect{V}_i\| = \sqrt{(V_x - \omega_z d\sin\alpha_i)^2 + (V_y + \omega_z d\cos\alpha_i)^2} = \omega_i r
-    \end{aligned}
-    \label{eq:wheel-speed}
+    \theta_i = \arctan2(v_{i\perp}, v_{i\parallel})
+    \label{eq:tsd-inverse-kinematics-angle}
 \end{equation}
 
-donde $r$ es el radio de la rueda y $\omega_i$ es la velocidad angular de la rueda $i$.
+La velocidad angular de rueda resulta:
 
-Obviamente, todas las ruedas tienen el mismo radio $r$.
-
-\subsection{Cinemática inversa}
-
-Se denomina cinemática inversa al proceso de calcular las velocidades de las ruedas $\omega_i$, y su orientación $\theta_i$, a partir de la velocidad lineal $\vect{V}$ y la velocidad angular $\boldsymbol{\omega}$ de la base.
-
-Se calcula la orientación de cada rueda $i$, $\theta_i$, a partir de su velocidad lineal $\vect{V}_i$:
 \begin{equation}
-    \theta_i = \arctan2(V_{iy}, V_{ix}) = \arctan2(V_y + \omega_z d\cos\alpha_i, V_x - \omega_z d\sin\alpha_i)
-    \label{eq:inverse-kinematics-angle}
+    \|{}^{\frameBi} \vect{V}_i\| = \sqrt{v_{i\parallel}^2 + v_{i\perp}^2} = r\omega_i
+    \label{eq:tsd-inverse-kinematics-speed-norm}
 \end{equation}
 
-A continuación, se obtiene la velocidad angular de cada rueda $i$, $\omega_i$, a partir de su velocidad lineal, $\vect{V}_i$, y su radio, $r$:
 \begin{equation}
-    \omega_i = \frac{\|\vect{V}_i\|}{r} = \frac{\sqrt{(V_x - \omega_z d\sin\alpha_i)^2 + (V_y + \omega_z d\cos\alpha_i)^2}}{r}
-    \label{eq:inverse-kinematics-speed}
+    \omega_i = \frac{\|{}^{\frameBi} \vect{V}_i\|}{r} = \frac{\sqrt{v_{i\parallel}^2 + v_{i\perp}^2}}{r}
+    \label{eq:tsd-inverse-kinematics-angular-speed}
 \end{equation}
-
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1.0\linewidth]{images/inverted_y_inverse_kinematics.png}
-    \caption{Cinemática inversa de un robot con configuración Y-invertida.}
-    \label{fig:inverted-y-inverse-kinematics}
+    \includegraphics[width=1.0\linewidth]{images/three_swerve_drive_inverted_y_inverse_kinematics.png}
+    \caption{Cinemática inversa de un robot con configuración Y-invertida}
+    \label{fig2:tsd-inverted-y-inverse-kinematics}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1.0\linewidth]{images/y_inverse_kinematics.png}
+    \includegraphics[width=1.0\linewidth]{images/three_swerve_drive_y_inverse_kinematics.png}
     \caption{Cinemática inversa de un robot con configuración Y}
-    \label{fig:y-inverse-kinematics}
+    \label{fig2:tsd-y-inverse-kinematics}
 \end{figure}
 
-\subsection{Cinemática directa}
+\subsection{Cinemática directa del three swerve}
 
-Se denomina cinemática directa al proceso de calcular la velocidad lineal $\vect{V}$ y la velocidad angular $\boldsymbol{\omega}$ de la base a partir de las velocidades angulares $\omega_i$ y las orientaciones $\theta_i$ de las ruedas.
+Conocido el ángulo de orientación \(\theta_i\) y la velocidad angular \(\omega_i\) de cada rueda \(i\), se puede calcular el vector de velocidad de cada rueda en su SC base \(\frameBi\), \({}^{\frameBi}\vect{V}_i = [v_{i\parallel}, v_{i\perp}]^{\trans}\). Conocidos todos los vectores \({}^{\frameBi}\vect{V}_i\), se construye el vector \(\mathbf{b} = [v_{1\parallel}, v_{1\perp}, \ldots, v_{N\parallel}, v_{N\perp}]^{\trans}\) y se resuelve el sistema lineal \(A\mathbf{x} = \mathbf{b}\) para obtener la velocidad del chasis \(\mathbf{x} = [{}^\frameR V_{r,x}, {}^\frameR V_{r,y}, \omega_{r,z}]^{\trans}\).
 
-Se conocen 6 variables de entrada: las velocidades angulares $\omega_i$ y las orientaciones $\theta_i$ de cada rueda $i$. Se desea calcular 3 variables de salida: la velocidad lineal $\vect{V} = (V_x, V_y, 0)^{\mathsf{T}}$ y la velocidad angular $\boldsymbol{\omega} = (0, 0, \omega_z)^{\mathsf{T}}$ de la base. Por lo tanto, el sistema es sobredeterminado y se resuelve de forma robusta mediante mínimos cuadrados.
-En la configuración Y-invertida se usa $i \in \{F,L,R\}$ (Front, Left, Right). Para la configuración Y, se sustituye por $i \in \{B,L,R\}$ (Back, Left, Right).
+A partir de la ecuación \ref{eq:tsd-inverse-kinematics-speed-norm} se obtienen las velocidades \(v_{i\parallel}\) y \(v_{i\perp}\):
 
-Para cada rueda $i$, se define el vector unitario de rodadura:
-\begin{equation}
-    \vect{t}_i = \begin{bmatrix}
-        \cos\theta_i \\
-        \sin\theta_i \\
-        0
-    \end{bmatrix}
-    \label{eq:wheel-rolling-direction}
-\end{equation}
-
-La velocidad lineal de la rueda en su dirección de rodadura es:
-\begin{equation}
-    \vect{V}_i = r\omega_i \vect{t}_i
-    = r\omega_i
-    \begin{bmatrix}
-        \cos\theta_i \\
-        \sin\theta_i \\
-        0
-    \end{bmatrix}
-    \label{eq:wheel-linear-from-omega}
-\end{equation}
-
-Igualando \eqref{eq:wheel-velocity-expanded} y \eqref{eq:wheel-linear-from-omega}, para cada rueda $i$ se obtiene:
 \begin{equation}
     \begin{aligned}
-        V_x - \omega_z d\sin\alpha_i & = r\omega_i\cos\theta_i \\
-        V_y + \omega_z d\cos\alpha_i & = r\omega_i\sin\theta_i
+        v_{i\parallel} & = \|{}^{\frameBi} \vect{V}_i\|\cos\theta_i = r\omega_i\cos\theta_i \\
+        v_{i\perp}     & = \|{}^{\frameBi} \vect{V}_i\|\sin\theta_i = r\omega_i\sin\theta_i
+        \label{eq:tsd-direct-kinematics-v_parallel-v_perp}
     \end{aligned}
-    \label{eq:direct-kinematics-per-wheel}
 \end{equation}
 
-En el caso ideal (sin ruido ni deslizamiento), cualquier subconjunto de 3 ecuaciones independientes permite resolver $\vect{V}$ y $\vect{\omega}$ de forma exacta.
-Desde un punto de vista matemático ideal, la forma de proceder consiste en construir un sistema lineal y resolverlo mediante mínimos cuadrados.
+A continuación se presentan las matrices \(A\) para la configuración Y-invertida y la configuración Y.
+\[
+    A_{Y-inv} = \begin{bmatrix}
+        0 & -1           & \phantom{-}0           \\
+        1 & \phantom{-}0 & \phantom{-}d           \\
 
-\begin{equation}
-    A\mathbf{x}=\mathbf{b},
-    \quad
-    \mathbf{x}=
-    \begin{bmatrix}
-        V_x \\
-        V_y \\
-        \omega_z
+        0 & -1           & -d\sin\alpha           \\
+        1 & \phantom{-}0 & \phantom{-}d\cos\alpha \\
+
+        0 & -1           & \phantom{-}d\sin\alpha \\
+        1 & \phantom{-}0 & \phantom{-}d\cos\alpha
+    \end{bmatrix}, \qquad
+    A_{Y} = \begin{bmatrix}
+        0 & -1           & \phantom{-}0           \\
+        1 & \phantom{-}0 & -d                     \\
+
+        0 & -1           & -d\sin\alpha           \\
+        1 & \phantom{-}0 & \phantom{-}d\cos\alpha \\
+
+        0 & -1           & \phantom{-}d\sin\alpha \\
+        1 & \phantom{-}0 & \phantom{-}d\cos\alpha
     \end{bmatrix}
-    \label{eq:direct-linear-system}
-\end{equation}
+\]
+
+El vector \(\mathbf{b}\) se construye a partir de las velocidades \(v_{i\parallel}\) y \(v_{i\perp}\) de cada rueda:
 
 \begin{equation}
-    \hat{\mathbf{x}}
-    = \arg\min_{\mathbf{x}}\|A\mathbf{x}-\mathbf{b}\|_2^2
-    = (A^{\mathsf{T}}A)^{-1}A^{\mathsf{T}}\mathbf{b}
-    \label{eq:direct-least-squares}
-\end{equation}
-
-Como referencia, para la configuración Y-invertida (\(i\in\{F,L,R\}\)) se usarían las siguientes matrices $A$ y $\mathbf{b}$:
-\begin{equation}
-    A_{\text{Y-invertida}}=
-    \begin{bmatrix}
-        1 & 0 & -d\sin\alpha_F           \\
-        0 & 1 & \phantom{-}d\cos\alpha_F \\
-        1 & 0 & -d\sin\alpha_L           \\
-        0 & 1 & \phantom{-}d\cos\alpha_L \\
-        1 & 0 & -d\sin\alpha_R           \\
-        0 & 1 & \phantom{-}d\cos\alpha_R
+    \mathbf{b} = \begin{bmatrix}
+        v_{1\parallel} \\
+        v_{1\perp}     \\
+        v_{2\parallel} \\
+        v_{2\perp}     \\
+        v_{3\parallel} \\
+        v_{3\perp}
     \end{bmatrix}
-    \label{eq:A-y-invertida}
-\end{equation}
-\begin{equation}
-    \mathbf{b}_{\text{Y-invertida}}
-    =r\begin{bmatrix}
-        \omega_F\cos\theta_F \\
-        \omega_F\sin\theta_F \\
-        \omega_L\cos\theta_L \\
-        \omega_L\sin\theta_L \\
-        \omega_R\cos\theta_R \\
-        \omega_R\sin\theta_R
-    \end{bmatrix}
-    \label{eq:b-y-invertida}
 \end{equation}
 
-con $\alpha_F=0^\circ$, $\alpha_L=\alpha$ y $\alpha_R=-\alpha$.
-
-Para la configuración Y (\(i\in\{B,L,R\}\)) se usarían las siguientes matrices $A$ y $\mathbf{b}$:
-\begin{equation}
-    A_{\text{Y}}=
-    \begin{bmatrix}
-        1 & 0 & -d\sin\alpha_B           \\
-        0 & 1 & \phantom{-}d\cos\alpha_B \\
-        1 & 0 & -d\sin\alpha_L           \\
-        0 & 1 & \phantom{-}d\cos\alpha_L \\
-        1 & 0 & -d\sin\alpha_R           \\
-        0 & 1 & \phantom{-}d\cos\alpha_R
-    \end{bmatrix}
-    \label{eq:A-y}
-\end{equation}
-\begin{equation}
-    \mathbf{b}_{\text{Y}}
-    =r\begin{bmatrix}
-        \omega_B\cos\theta_B \\
-        \omega_B\sin\theta_B \\
-        \omega_L\cos\theta_L \\
-        \omega_L\sin\theta_L \\
-        \omega_R\cos\theta_R \\
-        \omega_R\sin\theta_R
-    \end{bmatrix}
-    \label{eq:b-y}
-\end{equation}
-
-con $\alpha_B=180^\circ$, $\alpha_L=\alpha$ y $\alpha_R=-\alpha$.
-
-Nótese que la solución de mínimos cuadrados dada por \eqref{eq:direct-least-squares} es válida siempre que $A^{\mathsf{T}}A$ sea invertible.
-
-En condiciones reales, las 6 ecuaciones no encajan de forma exacta por varias causas:
-\begin{itemize}
-    \item ruido de sensores
-    \item deslizamiento de ruedas
-    \item errores de geometría o calibración
-    \item cuantización de encoders
-\end{itemize}
-
-Aunque la expresión cerrada \eqref{eq:direct-least-squares} es útil para análisis, en implementación numérica se recomienda evitar el cálculo explícito de $(A^{\mathsf{T}}A)^{-1}$, ya que por las causas mencionadas, $A$ puede estar mal condicionada o incluso ser singular, lo que puede hacer que $A^{\mathsf{T}}A$ no sea invertible o que su inversa sea numéricamente inestable.
-
-Desde el punto de vista de implementación, la forma recomendada es resolver mínimos cuadrados con métodos numéricamente estables, en lugar de usar la inversión explícita de $(A^{\mathsf{T}}A)$.
-
-Para ello, pueden seguirse dos enfoques:
-\begin{itemize}
-    \item Resolver directamente el problema de mínimos cuadrados mediante descomposición QR (descomposición ortogonal-triangular).
-    \item Resolverlo mediante la pseudoinversa de Moore-Penrose:
-          \[
-              \hat{\mathbf{x}} = A^{\dagger}\mathbf{b}
-          \]
-          En este enfoque, la forma habitual de calcular $A^{\dagger}$ de manera robusta es la descomposición en valores singulares (SVD).
-\end{itemize}
-
-Como criterio práctico de implementación:
-\begin{itemize}
-    \item \textbf{QR (descomposición ortogonal-triangular):}
-          \begin{itemize}
-              \item Ventajas: menor coste computacional y mayor velocidad.
-              \item Inconveniente: menor robustez cuando el sistema está muy mal condicionado o casi singular.
-              \item Uso recomendado: estimación online de $\hat{\mathbf{x}}$ cuando el problema está razonablemente bien condicionado.
-          \end{itemize}
-
-    \item \textbf{SVD (descomposición en valores singulares):}
-          \begin{itemize}
-              \item Ventajas: mayor robustez numérica y mejor manejo de sistemas mal condicionados o casi singulares; además permite diagnosticar el rango efectivo del sistema.
-              \item Inconveniente: mayor coste computacional.
-              \item Uso recomendado: cuando se prioriza estabilidad numérica y robustez frente a ruido o mala condición.
-          \end{itemize}
-\end{itemize}
-
-Para decidir entre QR y SVD en este problema, puede seguirse el siguiente procedimiento:
-\begin{itemize}
-    \item Construir $A$ a partir de la geometría ($d$ y $\alpha_i$).
-    \item Evaluar su condicionamiento una vez (por ejemplo, al arrancar), ya que $A$ es constante si la geometría no cambia.
-    \item Calcular el número de condición de $A$:
-          \[
-              \kappa(A)=\frac{\sigma_{\max}(A)}{\sigma_{\min}(A)}
-          \]
-          donde $\sigma_{\max}(A)$ y $\sigma_{\min}(A)$ son, respectivamente, el mayor y el menor valor singular de $A$.
-          \begin{itemize}
-              \item Para obtener los valores singulares, usar la descomposición en valores singulares:
-                    \[
-                        A=U\Sigma V^{\mathsf{T}}
-                    \]
-                    donde $U$ y $V$ son matrices ortogonales, y $\Sigma$ es una matriz diagonal (o diagonal rectangular) cuyos elementos diagonales son los valores singulares $\sigma_i$.
-              \item Forma equivalente práctica:
-                    \begin{itemize}
-                        \item Calcular $A^{\mathsf{T}}A$.
-                        \item Obtener sus autovalores (eigenvalues) $\lambda_i$.
-                        \item Calcular $\sigma_i=\sqrt{\lambda_i}$.
-                        \item Calcular explícitamente:
-                              \[
-                                  \sigma_{\max}=\sqrt{\lambda_{\max}(A^{\mathsf{T}}A)},
-                                  \quad
-                                  \sigma_{\min}=\sqrt{\lambda_{\min}(A^{\mathsf{T}}A)}
-                              \]
-                    \end{itemize}
-          \end{itemize}
-    \item Elegir método usando umbrales orientativos de $\kappa$:
-          \begin{itemize}
-              \item $\kappa < 10^3$: usar QR
-              \item Si $\kappa \ge 10^3$, usar SVD.
-          \end{itemize}
-    \item En el código, conviene calcular el residuo como chequeo de calidad de la solución:
-          \begin{itemize}
-              \item Útil para:
-                    \begin{itemize}
-                        \item Detectar deslizamiento o lecturas anómalas.
-                        \item Detectar que el modelo no explica bien los datos en ese instante.
-                        \item Lanzar flags, diagnóstico o log.
-                    \end{itemize}
-              \item Métrica típica:
-                    \[
-                        r=\|A\hat{\mathbf{x}}-\mathbf{b}\|_2,
-                        \quad
-                        r_{\text{rel}}=\frac{\|A\hat{\mathbf{x}}-\mathbf{b}\|_2}{\max(\|\mathbf{b}\|_2,\varepsilon)}
-                    \]
-                    En el ejemplo de código se toma $\varepsilon=10^{-12}$ para evitar divisiones por cero cuando $\|\mathbf{b}\|_2$ es muy pequeña.
-              \item Interpretación práctica:
-                    \begin{itemize}
-                        \item $r_{\text{rel}} \le 10^{-3}$: solución consistente.
-                        \item $10^{-3} < r_{\text{rel}} \le 10^{-2}$: calidad intermedia, conviene monitorizar.
-                        \item $r_{\text{rel}} > 10^{-2}$: posible slip, ruido alto, outliers o descalibración.
-                    \end{itemize}
-          \end{itemize}
-    \item En ejecución online, actualizar únicamente $\mathbf{b}$ con las lecturas de ruedas y resolver con el método elegido.
-    \item Repetir la evaluación solo si cambia la geometría o la calibración.
-\end{itemize}
-
-Como complemento, el siguiente ejemplo en C++/Eigen muestra una implementación directa del procedimiento anterior:
-\begin{lstlisting}[language=C++,breaklines=true,caption={Receta en C++/Eigen para seleccionar QR o SVD y validar el resultado},label={lst:qr-svd-selection}]
-using Eigen::ComputeThinU;
-using Eigen::ComputeThinV;
-using Eigen::JacobiSVD;
-using Eigen::Matrix;
-using Eigen::Matrix3d;
-using Eigen::SelfAdjointEigenSolver;
-using Eigen::Vector3d;
-
-// A se construye una sola vez al arrancar el programa
-Matrix<double, 6, 3> A = build_A(d, alpha);
-// kappa(A) = sig_max / sig_min.
-Matrix3d AtA = A.transpose() * A;
-SelfAdjointEigenSolver<Matrix3d> es(AtA);
-// Orden ascendente
-Vector3d lambda = es.eigenvalues();
-double sig_min = std::sqrt(std::max(lambda(0), 0.0));
-double sig_max = std::sqrt(std::max(lambda(2), 0.0));
-double kappa = sig_max / std::max(sig_min, 1e-12);
-
-...
-while(data_available) {
-    // En cada iteracion solo cambia b.
-    // w: velocidad angular de cada rueda (3x1)
-    // theta: orientacion de cada rueda (3x1)
-    // r: radio de rueda
-    Matrix<double, 6, 1> b = build_B(w, theta, r);
-    Vector3d x_hat;
-
-    if (kappa < 1e3)
-    {
-        // QR con pivoteo
-        x_hat = A.colPivHouseholderQr().solve(b);
-    }
-    else
-    {
-        auto opts = ComputeThinU | ComputeThinV;
-        JacobiSVD<Matrix<double, 6, 3>> svd(A, opts);
-        x_hat = svd.solve(b);
-    }
-
-    // Chequeo de calidad (residuo relativo).
-    double res = (A * x_hat - b).norm();
-    double res_rel = res / std::max(b.norm(), 1e-12);
-    constexpr double res_rel_threshold = 1e-2;
-    if (res_rel > res_rel_threshold)
-    {
-        // warning: calidad baja de la estimacion
-        log_warning("High residual", res_rel);
-    }
-}
-\end{lstlisting}
-
-\clearpage
-\appendix
-\section{Pseudoinversa de Moore-Penrose}
-
-Este contenido se ha retirado del cuerpo principal y se conserva en este apéndice como referencia conceptual. Aunque su valor teórico es alto, su integración directa en la narrativa principal podía introducir confusión en el flujo de lectura.
-
-La pseudoinversa de Moore-Penrose, $A^{\dagger}$, generaliza la expresión de mínimos cuadrados:
-\begin{itemize}
-    \item $A^{\dagger}$ está definida para cualquier matriz $A$, incluso si $A$ no es cuadrada o no es invertible.
-    \item La formulación de mínimos cuadrados mediante el uso de $A^{\dagger}$ mejora la robustez cuando las ecuaciones son casi dependientes o están afectadas por ruido:
-          \[
-              \hat{\mathbf{x}} = A^{\dagger}\mathbf{b}
-          \]
-    \item Cuando $A$ tiene rango completo en columnas (las columnas de $A$ son linealmente independientes), la matriz $A^{\mathsf{T}}A$ es invertible y la solución de mínimos cuadrados se puede calcular mediante la fórmula cerrada $(A^{\mathsf{T}}A)^{-1}A^{\mathsf{T}}\mathbf{b}$. En este caso se cumple la equivalencia:
-          \[
-              A^{\dagger} = (A^{\mathsf{T}}A)^{-1}A^{\mathsf{T}}
-          \]
-\end{itemize}
-
-Desde el punto de vista numérico, para calcular $A^{\dagger}$ de forma robusta se utiliza la descomposición en valores singulares (SVD).
-
-
-% \bibliographystyle{abbrv}
-% \bibliography{references}
-
-
-
-% \begin{tabular}{ m{0.1\linewidth} m{0.8\linewidth} }
-% \includegraphics[width=30pt]{images/toolbar-forbidden.png} & \textbf{Zonas prohibidas} donde los AGVs no pueden entrar nunca. Estas zonas están tratadas como obstáculos estáticos en el planificador de trayectorias.\\
-% \\
-% \includegraphics[width=30pt]{images/toolbar-single-robot.png} & \textbf{Zonas single-robot} donde solo un AGV puede pasar a la vez. Los AGVs esperan automáticamente que las zonas single-robot estén libres antes de atravesarlas.\\
-% \end{tabular}
-
-% \begin{figure}[H]
-% \centering
-% \begin{verbatim}
-% DATE;LINE_ID;PARTNUMBER;DESTINATION;DUE DATE
-% 06/11/2017 6:00;SMD1;A2C40006174;SMD2;06/11/2017 8:00
-% 06/11/2017 6:02;SMD3;A2C01891600;SMD5;06/11/2017 8:02
-% 06/11/2017 6:02;SMD4;A2C40006559;SMD2;06/11/2017 8:02
-% 06/11/2017 6:02;SMD4;A2C00046951;SMD5;06/11/2017 8:02
-% 06/11/2017 6:03;SMD5;A2C00048077;SMD1;06/11/2017 8:03
-% \end{verbatim}
-% \caption{Formato CSV de definición de las tareas}
-% \label{fig:csv-task-format}
-% \end{figure}
-
-% La figura \ref{fig:special-zones} representa un escenario de simulación con 4 operarios logísticos y las estaciones que les están asignadas.
+El vector \(\mathbf{x}\) se calcula aplicando la pseudoinversa de \(A\), \(A^+\), al vector \(\mathbf{b}\) como se explicó en la Sección \ref{sec:general-considerations}.
 
 \end{document}
