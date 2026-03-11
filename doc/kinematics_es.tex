@@ -49,10 +49,6 @@
 \newcommand{\ejeXR}{X_{\frameR}}
 \newcommand{\ejeYR}{Y_{\frameR}}
 
-\newcommand{\frameO}{\mathcal{O}}
-\newcommand{\ejeXO}{X_{\frameO}}
-\newcommand{\ejeYO}{Y_{\frameO}}
-
 \newcommand{\frameB}{\mathcal{B}}
 \newcommand{\ejeXB}{X_{\frameB}}
 \newcommand{\ejeYB}{Y_{\frameB}}
@@ -60,6 +56,13 @@
 \newcommand{\frameBi}{\mathcal{B}_i}
 \newcommand{\ejeXBi}{X_{\frameBi}}
 \newcommand{\ejeYBi}{Y_{\frameBi}}
+
+\newcommand{\frameBOne}{\mathcal{B}_1}
+\newcommand{\frameBN}{\mathcal{B}_N}
+
+\newcommand{\frameW}{\mathcal{W}}
+\newcommand{\ejeXW}{X_{\frameW}}
+\newcommand{\ejeYW}{Y_{\frameW}}
 
 \newcommand{\frameWi}{\mathcal{W}_i}
 \newcommand{\ejeXWi}{X_{\frameWi}}
@@ -76,26 +79,26 @@
 \maketitle
 
 \begin{abstract}
-Este documento presenta un desarrollo analítico riguroso de la cinemática directa e inversa para robots terrestres con ruedas. A partir de la definición de un sistema de coordenadas base invariante para cada rueda, se formula un sistema de ecuaciones matriciales que relaciona las velocidades individuales con el estado de movimiento del chasis. Dado que las plataformas con múltiples ruedas generan habitualmente sistemas sobredeterminados, se aborda su resolución óptima mediante el método de mínimos cuadrados y la pseudoinversa de Moore-Penrose. El texto pone un énfasis fundamental en la implementación en software y la estabilidad numérica, justificando detalladamente el uso de la Descomposición en Valores Singulares (SVD) para eludir las inestabilidades algebraicas. Asimismo, se introduce el análisis del número de condición ($\kappa$) como herramienta diagnóstica crítica para distinguir entre la robustez computacional del algoritmo y la viabilidad física del diseño mecánico. Finalmente, este marco teórico generalizado se aplica a la formulación y resolución cinemática de diversas topologías estándar en la robótica móvil, abarcando desde sistemas de tracción diferencial y dirección Ackermann, hasta plataformas omnidireccionales con ruedas Mecanum y configuraciones \textit{swerve drive}.
+    Este documento presenta un desarrollo analítico riguroso de la cinemática directa e inversa para robots terrestres con ruedas. A partir de la definición de un sistema de coordenadas base invariante para cada rueda, se formula un sistema de ecuaciones matriciales que relaciona las velocidades individuales con el estado de movimiento del chasis. Dado que las plataformas con múltiples ruedas generan habitualmente sistemas sobredeterminados, se aborda su resolución óptima mediante el método de mínimos cuadrados y la pseudoinversa de Moore-Penrose. El texto pone un énfasis fundamental en la implementación en software y la estabilidad numérica, justificando detalladamente el uso de la Descomposición en Valores Singulares (SVD) para eludir las inestabilidades algebraicas. Asimismo, se introduce el análisis del número de condición (\(\kappa\)) como herramienta diagnóstica crítica para distinguir entre la robustez computacional del algoritmo y la viabilidad física del diseño mecánico. Finalmente, este marco teórico generalizado se aplica a la formulación y resolución cinemática de diversas topologías estándar en la robótica móvil, abarcando desde sistemas de tracción diferencial y dirección Ackermann, hasta plataformas omnidireccionales con ruedas Mecanum y configuraciones \textit{swerve drive}.
 \end{abstract}
 
 \section{Restricciones de movimiento impuestas por las ruedas}
 
-En un robot terrestre, las ruedas imponen restricciones de movimiento:
+En un robot terrestre, las ruedas imponen restricciones de movimiento. En ruedas convencionales, tanto orientables como no orientables, la rueda al girar sobre su eje de rotación se desplaza describiendo una trayectoria rectilínea en una determinada dirección que se denomina \textbf{dirección de rodadura}.
 
-\begin{itemize}
-    \item \textbf{Restricción de rodadura:} la rueda solo puede moverse en la dirección de rodadura.
-    \item \textbf{Restricción de no deslizamiento lateral (rueda convencional):} la velocidad de contacto entre rueda y suelo en la dirección perpendicular a la rodadura es nula.
-    \item \textbf{Ruedas omnidireccionales/suecas:} esta restricción lateral no aplica de forma estricta, ya que los rodillos permiten movimiento lateral pasivo.
-\end{itemize}
+En las ruedas convencionales no orientables, la dirección de rodadura es fija, siempre apunta en la misma dirección, dado que la rueda no puede cambiar de orientación con respecto al chasis. En las ruedas convencionales orientables, primero la rueda se orienta hacia la dirección de rodadura deseada (pivotando sobre su eje vertical) y luego gira sobre su eje de rotación para desplazarse en esa dirección.
+
+Tanto las ruedas convencionales orientables como las no orientables no pueden desplazarse en la dirección perpendicular a la dirección de rodadura, que es la dirección de su eje de rotación. Dicho de otra forma, la velocidad lateral de la rueda es nula, lo que se conoce como \textbf{restricción de no deslizamiento lateral}.
+
+Por el contrario, en ruedas omnidireccionales y Mecanum/suecas, debido a la presencia de rodillos en su periferia que giran libremente, la dirección de rodadura de la rueda principal, aunque es fija y no cambia con el transcurrir del tiempo, no tiene por qué coincidir con la dirección de movimiento real de la rueda sobre el suelo. La rotación pasiva de los rodillos permite que la rueda tenga una velocidad lateral no nula (en dirección perpendicular a la dirección de rodadura; i.e, la dirección del eje de rotación de la rueda), eliminando la restricción de no deslizamiento lateral.
 
 Estas restricciones se pueden expresar matemáticamente como ecuaciones que relacionan la velocidad lineal y angular de la rueda con la velocidad del robot. Estas ecuaciones son fundamentales para el diseño de controladores y planificadores de movimiento para robots terrestres, ya que determinan cómo el robot puede moverse en su entorno.
 
 Apilando estas restricciones para cada rueda, se pueden derivar las ecuaciones de cinemática directa e inversa para diferentes configuraciones de robots terrestres, como robots con ruedas diferenciales, robots con ruedas omnidireccionales, y robots con ruedas activas orientables (swerve drive), entre otros.
 
 En la figura \ref{fig:wheel-placement} se muestra el posicionamiento 2D de una rueda respecto al sistema de coordenadas (SC) del robot, \(\frameR\).
-El término \(d\) representa la distancia desde el SC del robot hasta el punto de contacto de la rueda con el suelo.
-El término \(\alpha\) representa el ángulo que forma el eje \(\ejeXR\) con el vector de posición de la rueda, \(\vect{d}\), y por cómo se posiciona la rueda, es también el ángulo que forma el eje \(\ejeXR\) con el eje \(\ejeYO\). El eje \(\ejeXO\) es perpendicular al eje \(\ejeYO\) y su orientación con respecto al eje \(\ejeXR\) es \(\alpha - \frac{\pi}{2}\).
+El término \(\alpha\) representa el ángulo que forma el eje \(\ejeXR\) con el vector de posición de la rueda, \(\vect{d}\), y por cómo se posiciona la rueda \textit{inicialmente}, es también el ángulo que forma el eje \(\ejeXR\) con el eje \(\ejeYW\). El eje \(\ejeXW\) es perpendicular al eje \(\ejeYW\) y su orientación con respecto al eje \(\ejeXR\) es \(\psi = \alpha - \frac{\pi}{2}\).
+La magnitud del vector \(\vect{d}\) es la distancia entre el SC del robot y el SC de la rueda, \(\left|\bm{d}\right| = d\).
 
 \begin{equation}
     \vect{d} = \begin{bmatrix} d\cos\alpha \\ d\sin\alpha \\ 0 \end{bmatrix}
@@ -104,12 +107,14 @@ El término \(\alpha\) representa el ángulo que forma el eje \(\ejeXR\) con el 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\linewidth]{images/wheel_placement.png}
-    \caption{Posicionamiento 2D de una rueda respecto al SC del robot.}
+    \caption{Posicionamiento 2D de una rueda respecto al SC del robot, \(\frameR\).}
     \label{fig:wheel-placement}
 \end{figure}
 
-A continuación, se considera un ángulo \(\beta\) que permite orientar la rueda de la manera deseada, como se muestra en la figura \ref{fig:wheel-orientation}.
+A continuación, se considera un ángulo \(\beta\) que permite orientar la rueda de la manera deseada con respecto al SC del robot, \(\frameR\) (figura \ref{fig:wheel-orientation}), dando lugar al \textbf{SC base de la rueda}, \(\frameB\). El SC \(\frameB\) mantiene constante su posición y orientación con el transcurrir del tiempo con respecto del SC \(\frameR\) y resulta \textit{convenientemente adecuado} para definir la orientación de la rueda durante el movimiento del vehículo y aplicar las restricciones de movimiento.
+
 La orientación final de la rueda viene dada por el ángulo \(\psi\), formado entre el eje \(\ejeXR\) y el eje \(\ejeXB\).
+
 \[
     \psi = \alpha + \beta - \frac{\pi}{2}
 \]
@@ -123,11 +128,20 @@ y, para simplificar la notación se introduce el símbolo \(\phi\) como:
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\linewidth]{images/wheel_orientation.png}
-    \caption{Orientación de la rueda mediante el ángulo \(\beta\).}
+    \caption{Orientación de la rueda en la dirección de interés, mediante el ángulo \(\beta\).}
     \label{fig:wheel-orientation}
 \end{figure}
 
-El SC \(\frameB\) se denomina \textbf{SC base de la rueda}, y su posición y orientación se mantiene constante respecto del SC \(\frameR\). En ruedas no orientables, el eje \(\ejeXB\) determina la dirección de rodadura de la rueda y el eje \(\ejeYB\) es el eje de giro de la rueda. En ruedas orientables, el SC fijo a la rueda, \(\frameWi\), va cambiando su orientación (ángulo \(\theta\)) respecto al SC \(\frameB\) y sólo cuando \(\theta=0\) coinciden. Ver figura \ref{fig:steerable-wheel}.
+En ruedas convencionales no orientables, el eje \(\ejeXB\) y el eje X fijo a la rueda, \(\ejeXW\), que indica la dirección de rodadura de la rueda, coinciden todo el tiempo. Solo por completitud, cabe mencionar que en este tipo de ruedas el eje \(\ejeYB\) y el eje Y fijo a la rueda, \(\ejeYW\), que indica la dirección del eje de rotación de ésta, obviamente, también coinciden todo el tiempo.
+
+En ruedas orientables, el SC fijo a la rueda, \(\frameW\), va cambiando su orientación (ángulo \(\theta\)) respecto al SC \(\frameB\); es decir, sólo cuando \(\theta=0\) ambos SCs coinciden. Ver figura \ref{fig:rolling-direction}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\linewidth]{images/rolling_direction.png}
+    \caption{Izquierda: Rueda convencional no orientable, con dirección de rodadura fija. Derecha: Rueda convencional orientable, con dirección de rodadura variable, que se consigue pivotando la rueda un ángulo \(\theta\) respecto del SC base de la rueda, \(\frameB\).}
+    \label{fig:rolling-direction}
+\end{figure}
 
 La velocidad lineal de la base, expresada en el SC del robot, se denota como:
 
@@ -150,18 +164,12 @@ y se expresa en \si{\radian\per\second}.
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\linewidth]{images/wheel_vels.png}
-    \caption{Velocidades lineales y angulares relevantes para la rueda.}
+    \caption{\(\vect{V}_r\) es el vector velocidad del robot. \(\vect{V}_\omega\) es el vector velocidad tangencial de la rueda debido a la rotación del chasis. \(\vect{V}\) es el vector velocidad de la rueda orientable.}
     \label{fig:wheel-vels}
 \end{figure}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1.0\linewidth]{images/steerable_wheel.png}
-    \caption{Rueda convencional orientable rotando un ángulo \(\theta\) respecto al SC \(\frameB\) para conseguir la dirección de rodadura adecuada.}
-    \label{fig:steerable-wheel}
-\end{figure}
-
 La velocidad lineal de cada rueda \(i\), expresada en el SC \(\frameR\), se denota como:
+
 \begin{equation}
     {}^\frameR \vect{V}_{i}  = {}^\frameR \vect{V}_r + \vect{\omega}_r \times {}^\frameR \vect{d}_{i} = {}^\frameR \vect{V}_r + \skewsym{\boldsymbol{\omega}_r}\,{}^\frameR \vect{d}_{i}
     \label{eq:wheel-velocity}
@@ -172,6 +180,13 @@ donde \({}^\frameR \vect{d}_{i}\) es el vector de posición de la rueda \(i\) re
 El producto vectorial entre \(\boldsymbol{\omega}_r\) y \({}^\frameR \vect{d}_{i}\) puede escribirse como un producto matricial mediante el operador antisimétrico \([\cdot]_{\times}\):
 \(\boldsymbol{\omega}_r \times {}^\frameR \vect{d}_{i} = \skewsym{\boldsymbol{\omega}_r}\,{}^\frameR \vect{d}_{i}\), y
 \(\skewsym{\boldsymbol{\omega}_r}\) se define como:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\linewidth]{images/wheel_vels_2.png}
+    \caption{Relación entre las componentes del vector velocidad de la rueda \(\vect{V}\) en el SC \(\frameB\), \({}^{\frameB}V_{x}\) y \({}^{\frameB}V_{y}\), y en el SC \(\frameW\), \(v_{\parallel}\) y \(v_{\perp}\).}
+    \label{fig:wheel-vels-2}
+\end{figure}
 
 \begin{equation}
     \skewsym{\boldsymbol{\omega}_r} \triangleq
@@ -217,15 +232,15 @@ El producto vectorial entre \(\boldsymbol{\omega}_r\) y \({}^\frameR \vect{d}_{i
     \label{eq:wheel-velocity-expanded}
 \end{equation}
 
-El vector \({}^\frameR \vect{V}_{i}\) representa la velocidad lineal de la rueda \(i\) en el SC \(\frameR\).
-Para aplicar las restricciones de movimiento a cada rueda, se debe expresar su velocidad en su SC base, \(\frameBi\), \({}^{\frameBi} V_{i}\).
+El vector \({}^\frameR \vect{V}_{i}\) representa la velocidad lineal de la rueda \(i\) expresada en el SC \(\frameR\).
+Para aplicar las restricciones de movimiento a cada rueda, se debe expresar su velocidad en su SC base, \(\frameBi\), \({}^{\frameBi} \vect{V}_{i}\).
 
 \begin{equation}
-    {}^{\frameBi} \vect{V}_{i} = {}^{\frameBi} R(\psi_i)_3 {}^\frameR \vect{V}_{i}
+    {}^{\frameBi} \vect{V}_{i} = {}^{\frameBi} R(\psi_i)_{\frameR} {}^\frameR \vect{V}_{i}
     \label{eq:vwheel-transform}
 \end{equation}
 
-donde la matriz de rotación \({}^{\frameBi}  R(\psi_i)_3\) representa la orientación del SC \(\frameR\) en el SC \(\frameBi\), y se usa para convertir vectores expresados en el SC \(\frameR\) al SC base de la rueda \(i\), \(\frameBi\).
+donde la matriz de rotación \({}^{\frameBi}  R(\psi_i)_{\frameR}\) representa la orientación del SC \(\frameR\) en el SC \(\frameBi\), y se usa para convertir vectores expresados en el SC \(\frameR\) al SC base de la rueda \(i\), \(\frameBi\).
 
 La matriz que se conoce a priori es:
 
@@ -270,36 +285,28 @@ quedando finalmente:
 
 \begin{equation}
     \begin{aligned}
-        {}^{\frameBi} \vect{V}_i & = {}^{\frameBi}  R(\phi_i)_{\frameR} {}^\frameR \vect{V}_{i} \\
-                                 & = \begin{bmatrix}
-                                         \sin\phi_i & -\cos\phi_i           \\
-                                         \cos\phi_i & \phantom{-}\sin\phi_i
-                                     \end{bmatrix} \begin{bmatrix}
-                                                       1 & 0 & -d_{i} \sin\alpha_i           \\
-                                                       0 & 1 & \phantom{-}d_{i} \cos\alpha_i
-                                                   \end{bmatrix} \begin{bmatrix}
-                                                                     {}^\frameR V_{r,x} \\
-                                                                     {}^\frameR V_{r,y} \\
-                                                                     \omega_{r,z}
-                                                                 \end{bmatrix}
+        {}^{\frameBi} \vect{V}_i = \begin{bmatrix}
+                                       {}^{\frameBi}V_{i,x} \\
+                                       {}^{\frameBi}V_{i,y}
+                                   \end{bmatrix} & = {}^{\frameBi}  R(\phi_i)_{\frameR} {}^\frameR \vect{V}_{i} \\
+                                                   & = \begin{bmatrix}
+                                                           \sin\phi_i & -\cos\phi_i           \\
+                                                           \cos\phi_i & \phantom{-}\sin\phi_i
+                                                       \end{bmatrix} \begin{bmatrix}
+                                                                         1 & 0 & -d_{i} \sin\alpha_i           \\
+                                                                         0 & 1 & \phantom{-}d_{i} \cos\alpha_i
+                                                                     \end{bmatrix} \begin{bmatrix}
+                                                                                       {}^\frameR V_{r,x} \\
+                                                                                       {}^\frameR V_{r,y} \\
+                                                                                       \omega_{r,z}
+                                                                                   \end{bmatrix}
     \end{aligned}
 \end{equation}
 
-La velocidad \({}^{\frameBi} \vect{V}_i\) se puede expresar, de forma general, como:
-
-\begin{equation}
-    {}^{\frameBi} \vect{V}_i = \begin{bmatrix}
-        v_{i\parallel} \\
-        v_{i\perp}
-    \end{bmatrix}
-\end{equation}
-
-siendo \(v_{i\parallel}\) la componente de velocidad en la dirección de rodadura, \(\ejeXWi\), y \(v_{i\perp}\) la componente de velocidad perpendicular a la dirección de rodadura (dicho de otro modo, la velocidad lateral de la rueda, paralela al eje \(\ejeYWi\)).
-
 \begin{equation}
     \begin{bmatrix}
-        v_{i\parallel} \\
-        v_{i\perp}
+        {}^{\frameBi}V_{i,x} \\
+        {}^{\frameBi}V_{i,y}
     \end{bmatrix} = \begin{bmatrix}
         \sin\phi_i & -\cos\phi_i           \\
         \cos\phi_i & \phantom{-}\sin\phi_i
@@ -316,8 +323,8 @@ siendo \(v_{i\parallel}\) la componente de velocidad en la dirección de rodadur
 
 \[
     \begin{bmatrix}
-        v_{i\parallel} \\
-        v_{i\perp}
+        {}^{\frameBi}V_{i,x} \\
+        {}^{\frameBi}V_{i,y}
     \end{bmatrix} = \begin{bmatrix}
         \sin\phi_i & -\cos\phi_i           & -d_i(\phantom{-}\sin\alpha_i\sin\phi_i + \cos\alpha_i\cos\phi_i) \\
         \cos\phi_i & \phantom{-}\sin\phi_i & \phantom{-}d_i(-\sin\alpha_i\cos\phi_i + \cos\alpha_i\sin\phi_i)
@@ -329,6 +336,7 @@ siendo \(v_{i\parallel}\) la componente de velocidad en la dirección de rodadur
 \]
 
 A continuación se aplican las siguientes identidades trigonométricas:
+
 \[
     \begin{aligned}
         \phantom{-}\sin\alpha_i\sin\phi_i + \cos\alpha_i\cos\phi_i & = \cos(\phi_i - \alpha_i) = \cos((\alpha_i + \beta_i) - \alpha_i) = \cos\beta_i \\
@@ -340,8 +348,8 @@ Resultando finalmente:
 
 \begin{equation}
     \begin{bmatrix}
-        v_{i\parallel} \\
-        v_{i\perp}
+        {}^{\frameBi}V_{i,x} \\
+        {}^{\frameBi}V_{i,y}
     \end{bmatrix} = \begin{bmatrix}
         \sin\phi_i & -\cos\phi_i           & -d\cos\beta_i           \\
         \cos\phi_i & \phantom{-}\sin\phi_i & \phantom{-}d\sin\beta_i
@@ -357,9 +365,14 @@ Para cada rueda \(i\) se obtiene un sistema de 2 ecuaciones lineales con 3 incó
 
 En general, para \(N\) ruedas se obtienen \(2N\) ecuaciones lineales y 3 incógnitas. Por tanto, para \(N \ge 2\) el sistema es sobredeterminado.
 
-Dependiendo de si las ruedas usadas en una plataforma son no orientables, orientables, mecanum u omnidireccionales, se imponen diferentes restricciones a \(v_{i\parallel}\) y \(v_{i\perp}\), lo que da lugar a diferentes formas de resolver la cinemática directa e inversa.
+La ecuación \ref{eq:wheel-constraints-final} proporciona la velocidad de la rueda expresada en su SC base \(\frameBi\). Sin embargo, las restricciones físicas de movimiento de la rueda originadas por su contacto con el suelo se aplican en el SC propio de la rueda, \(\frameWi\). Por ello, es necesario definir las componentes de velocidad intrínsecas de la rueda:
 
-En el estudio de cada plataforma concreta, se aplicarán las restricciones específicas de cada tipo de rueda a las ecuaciones anteriores para obtener las fórmulas de cinemática directa e inversa correspondientes.
+\begin{itemize}
+    \item \(v_{i\parallel}\): la componente de la velocidad alineada con la dirección de rodadura (eje \(\ejeXWi\)).
+    \item \(v_{i\perp}\): la componente de la velocidad perpendicular a la dirección de rodadura (eje \(\ejeYWi\); i.e, la dirección de su eje de rotación).
+\end{itemize}
+
+Dependiendo de si las ruedas usadas en una plataforma son convencionales no orientables, convencionales orientables, mecanum u omnidireccionales, la relación geométrica entre las componentes del vector velocidad de la rueda \(\vect{V}\) en el SC base (\({}^{\frameBi}V_{i,x}, {}^{\frameBi}V_{i,y}\)) y en el SC fijo a la rueda (\(v_{i\parallel}, v_{i\perp}\)) cambiará. Ver figura \ref{fig:wheel-vels-2}. Dependiendo de la plataforma, se aplicarán diferentes restricciones físicas a las componentes \(v_{i\parallel}\) y \(v_{i\perp}\), lo que dará lugar a expresiones específicas que resuelven la cinemática directa e inversa para la plataforma considerada.
 
 \section{Consideraciones generales sobre cinemática directa e inversa}
 \label{sec:general-considerations}
@@ -389,11 +402,11 @@ donde:
         {}^\frameR V_{r,y} \\
         \omega_{r,z}
     \end{bmatrix}, \quad \mathbf{b} = \begin{bmatrix}
-        v_{1\parallel} \\
-        v_{1\perp}     \\
-        \vdots         \\
-        v_{N\parallel} \\
-        v_{N\perp}
+        {}^{\frameBOne}V_{1,x} \\
+        {}^{\frameBOne}V_{1,y} \\
+        \vdots                 \\
+        {}^{\frameBN}V_{N,x} \\
+        {}^{\frameBN}V_{N,y}
     \end{bmatrix}
 \]
 
@@ -544,11 +557,13 @@ La base con tres ruedas activas orientables (three swerve drive) es un sistema d
 Todas las ruedas tienen el mismo radio \(r\) y están situadas a la misma distancia \(d\) del centro de la base.
 
 Además, en este caso particular se impone:
+
 \[
     \psi_i = \phi_i - \frac{\pi}{2} = 0 \quad \Longrightarrow \quad \phi_i = \alpha_i + \beta_i = \frac{\pi}{2}, \quad \beta_i = \frac{\pi}{2} - \alpha_i
 \]
 
 y por tanto:
+
 \[
     {}^{\frameBi} R\left(\phi_i = \frac{\pi}{2}\right)_{\frameR} = \begin{bmatrix}
         \sin\frac{\pi}{2} & -\cos\frac{\pi}{2}           \\
@@ -559,7 +574,8 @@ y por tanto:
     \end{bmatrix}
 \]
 
-Para la configuración Y-invertida:\
+Para la configuración Y-invertida:
+
 \begin{itemize}
     \item \(\alpha \in \left[\frac{\pi}{2}, \pi\right)\) y \(d > 0\)
     \item Rueda frontal \((i = 1)\):
@@ -576,7 +592,8 @@ Para la configuración Y-invertida:\
           \]
 \end{itemize}
 
-Para la configuración Y:\
+Para la configuración Y:
+
 \begin{itemize}
     \item \(\alpha \in \left(0, \frac{\pi}{2}\right]\) y \(d > 0\)
     \item Rueda trasera \((i = 1)\):
@@ -595,56 +612,82 @@ Para la configuración Y:\
 
 \subsection{Cinemática inversa del three swerve}
 
-Conocido el vector de velocidad del chasis \({}^\frameR \vect{V}_r\), se obtiene la velocidad de cada rueda \(i\) en su SC base \(\frameBi\), \({}^{\frameBi}\vect{V}_i = [v_{i\parallel}, v_{i\perp}]^{\trans}\), aplicando la transformación de coordenadas de la ecuación \ref{eq:wheel-constraints-final}.
-
-Dado que cada rueda es orientable, se puede calcular el ángulo de orientación \(\theta_i\) que debe adoptar cada rueda, respecto del SC base \(\frameBi\), para que su dirección de rodadura quede alineada con el vector de velocidad \({}^{\frameBi} \vect{V}_i\)
+Para una rueda convencional orientable se verifica:
 
 \begin{equation}
-    \theta_i = \arctan2(v_{i\perp}, v_{i\parallel})
-    \label{eq:tsd-inverse-kinematics-angle}
+    {}^{\frameWi}\vect{V}_{i} = \begin{bmatrix}
+        v_{i\parallel} \\
+        v_{i\perp}
+    \end{bmatrix} = \begin{bmatrix}
+        \omega_i r \\
+        0
+    \end{bmatrix}
 \end{equation}
 
-La velocidad angular de rueda resulta:
+siendo \(v_{i\parallel}\) la velocidad de la rueda \(i\) en la dirección de rodadura y \(v_{i\perp}\) la componente perpendicular a la dirección de rodadura, que es nula, ya que la rueda no puede deslizar lateralmente.
+
+Dado que la rueda orientable tiene que girar un ángulo \(\theta_i\) con respecto a su SC base \(\frameBi\) para alinear su dirección de rodadura (eje \(X_{\frameWi}\)) con el vector de velocidad de la rueda \(\vect{V}_i\), se verifica a simple vista que:
 
 \begin{equation}
-    \|{}^{\frameBi} \vect{V}_i\| = \sqrt{v_{i\parallel}^2 + v_{i\perp}^2} = r\omega_i
-    \label{eq:tsd-inverse-kinematics-speed-norm}
-\end{equation}
-
-\begin{equation}
-    \omega_i = \frac{\|{}^{\frameBi} \vect{V}_i\|}{r} = \frac{\sqrt{v_{i\parallel}^2 + v_{i\perp}^2}}{r}
-    \label{eq:tsd-inverse-kinematics-angular-speed}
+    v_{i\parallel} = \|{}^{\frameBi} \vect{V}_i\| = \sqrt{{}^{\frameBi}V_{i,x}^2 + {}^{\frameBi}V_{i,y}^2} = r\omega_i
+    \label{eq:tsd-v_parallel}
 \end{equation}
 
 \begin{figure}[H]
     \centering
+    \includegraphics[width=0.8\linewidth]{images/three_swerve_drive_steerable_wheel.png}
+    \caption{Rueda convencional orientable alineada con su vector de velocidad \(\vect{V}_i\) mediante una rotación de ángulo \(\theta_i\) respecto de su SC base \(\frameBi\). La dirección de rodadura queda definida por el eje \(X_{\frameWi}\) del SC fijo a la rueda \(i\), \(\frameWi\).}
+    \label{fig2:tsd-steerable-wheel}
+\end{figure}
+
+Pasos para calcular la cinemática inversa de un robot con base three swerve drive:
+
+\begin{itemize}
+    \item Conocido el vector de velocidad del chasis \({}^\frameR \vect{V}_r\), se obtiene la velocidad de cada rueda \(i\) en su SC base \(\frameBi\), \({}^{\frameBi}\vect{V}_i\), aplicando la transformación de coordenadas de la ecuación \ref{eq:wheel-constraints-final}.
+    \item Se calcula el ángulo de orientación \(\theta_i\) que debe adoptar cada rueda \(i\) para alinear su dirección de rodadura con el vector de velocidad \({}^{\frameBi} \vect{V}_i\) mediante la función \(\arctan2\).
+          \begin{equation}
+              \theta_i = \arctan2({}^{\frameBi}V_{i,y}, {}^{\frameBi}V_{i,x})
+              \label{eq:tsd-inverse-kinematics-angle}
+          \end{equation}
+    \item Se calcula la velocidad angular de cada rueda \(i\) a partir de la expresión \ref{eq:tsd-v_parallel}.
+          \begin{equation}
+              \omega_i = \frac{v_{i\parallel}}{r} = \frac{\|{}^{\frameBi} \vect{V}_i\|}{r} = \frac{\sqrt{{}^{\frameBi}V_{i,x}^2 + {}^{\frameBi}V_{i,y}^2}}{r}
+              \label{eq:tsd-inverse-kinematics-angular-speed}
+          \end{equation}
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
     \includegraphics[width=1.0\linewidth]{images/three_swerve_drive_inverted_y_inverse_kinematics.png}
-    \caption{Cinemática inversa de un robot con configuración Y-invertida}
+    \caption{Configuración Y-invertida. Izquierda: Cálculo del vector velocidad de cada rueda, \(\vect{V}_i\). Derecha: Orientación final que cada rueda debe adoptar (\(\theta_i\)) para alinear su dirección de rodadura con el vector de velocidad \(\vect{V}_i\).}
     \label{fig2:tsd-inverted-y-inverse-kinematics}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\linewidth]{images/three_swerve_drive_y_inverse_kinematics.png}
-    \caption{Cinemática inversa de un robot con configuración Y}
+    \caption{Configuración Y. Izquierda: Cálculo del vector velocidad de cada rueda, \(\vect{V}_i\). Derecha: Orientación final que cada rueda debe adoptar (\(\theta_i\)) para alinear su dirección de rodadura con el vector de velocidad \(\vect{V}_i\).}
     \label{fig2:tsd-y-inverse-kinematics}
 \end{figure}
 
 \subsection{Cinemática directa del three swerve}
 
-Conocido el ángulo de orientación \(\theta_i\) y la velocidad angular \(\omega_i\) de cada rueda \(i\), se puede calcular el vector de velocidad de cada rueda en su SC base \(\frameBi\), \({}^{\frameBi}\vect{V}_i = [v_{i\parallel}, v_{i\perp}]^{\trans}\). Conocidos todos los vectores \({}^{\frameBi}\vect{V}_i\), se construye el vector \(\mathbf{b} = [v_{1\parallel}, v_{1\perp}, \ldots, v_{N\parallel}, v_{N\perp}]^{\trans}\) y se resuelve el sistema lineal \(A\mathbf{x} = \mathbf{b}\) para obtener la velocidad del chasis \(\mathbf{x} = [{}^\frameR V_{r,x}, {}^\frameR V_{r,y}, \omega_{r,z}]^{\trans}\).
+Conocidos el ángulo de orientación \(\theta_i\) y la velocidad angular \(\omega_i\) de cada rueda \(i\), se ejecutan los pasos siguientes para calcular la cinemática directa de un robot con base three swerve drive:
 
-A partir de la ecuación \ref{eq:tsd-inverse-kinematics-speed-norm} se obtienen las velocidades \(v_{i\parallel}\) y \(v_{i\perp}\):
-
-\begin{equation}
-    \begin{aligned}
-        v_{i\parallel} & = \|{}^{\frameBi} \vect{V}_i\|\cos\theta_i = r\omega_i\cos\theta_i \\
-        v_{i\perp}     & = \|{}^{\frameBi} \vect{V}_i\|\sin\theta_i = r\omega_i\sin\theta_i
-        \label{eq:tsd-direct-kinematics-v_parallel-v_perp}
-    \end{aligned}
-\end{equation}
+\begin{itemize}
+    \item Calcular el vector \(\mathbf{b} = [{}^{\frameBOne}V_{1,x}, {}^{\frameBOne}V_{1,y}, \ldots, {}^{\frameBN}V_{N,x}, {}^{\frameBN}V_{N,y}]^{\trans}\).\\
+          Donde:
+          \begin{equation}
+              \begin{aligned}
+                  {}^{\frameBi}V_{i,x} & = \|{}^{\frameBi}\vect{V}_i\| \cos\theta_i = v_{i\parallel}\cos\theta_i = r\omega_i\cos\theta_i \\
+                  {}^{\frameBi}V_{i,y} & = \|{}^{\frameBi}\vect{V}_i\| \sin\theta_i = v_{i\parallel}\sin\theta_i = r\omega_i\sin\theta_i
+              \end{aligned}
+          \end{equation}
+    \item Resolver el sistema lineal \(A\mathbf{x} = \mathbf{b}\) mediante la pseudoinversa de \(A\), \(A^+\), como se explicó en la Sección \ref{sec:general-considerations}, para obtener la velocidad del chasis \(\mathbf{x} = [{}^\frameR V_{r,x}, {}^\frameR V_{r,y}, \omega_{r,z}]^{\trans}\).
+\end{itemize}
 
 A continuación se presentan las matrices \(A\) para la configuración Y-invertida y la configuración Y.
+
 \[
     A_{Y-inv} = \begin{bmatrix}
         0 & -1           & \phantom{-}0           \\
@@ -667,20 +710,5 @@ A continuación se presentan las matrices \(A\) para la configuración Y-inverti
         1 & \phantom{-}0 & \phantom{-}d\cos\alpha
     \end{bmatrix}
 \]
-
-El vector \(\mathbf{b}\) se construye a partir de las velocidades \(v_{i\parallel}\) y \(v_{i\perp}\) de cada rueda:
-
-\begin{equation}
-    \mathbf{b} = \begin{bmatrix}
-        v_{1\parallel} \\
-        v_{1\perp}     \\
-        v_{2\parallel} \\
-        v_{2\perp}     \\
-        v_{3\parallel} \\
-        v_{3\perp}
-    \end{bmatrix}
-\end{equation}
-
-El vector \(\mathbf{x}\) se calcula aplicando la pseudoinversa de \(A\), \(A^+\), al vector \(\mathbf{b}\) como se explicó en la Sección \ref{sec:general-considerations}.
 
 \end{document}
