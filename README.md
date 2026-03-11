@@ -1,6 +1,6 @@
 # ground_vehicle_kinematics
 
-This package provides utilities and nodes to compute forward and inverse kinematics for ground vehicles. The current focus is on swerve-drive (steerable wheel) platforms, but the architecture is designed to support additional vehicle models in the future.
+This package provides utilities and ROS 2 nodes to compute forward and inverse kinematics for ground vehicles. It is intended as a generic foundation for different wheel-based vehicle models, and currently includes a documented implementation for a three-swerve platform.
 
 ## Main Features
 
@@ -9,15 +9,24 @@ This package provides utilities and nodes to compute forward and inverse kinemat
 - Integrates with other ROS 2 packages using standard messages (`geometry_msgs`, `sensor_msgs`).
 - Uses Eigen3 for efficient mathematical computations.
 - Provides configuration files and launch scripts for easy setup and testing.
-- Architecture prepared to support various types of ground vehicle kinematics.
+- Is structured to support multiple ground-vehicle kinematic models.
+- Currently includes technical documentation and an implementation example for a three-swerve configuration.
 
 ## Package Structure
 
-- `src/`: Main source code for nodes and utilities.
-- `include/`: Public headers for use by other packages.
-- `launch/`: Launch files to start nodes and configurations.
-- `config/`: Example YAML configuration files.
+- [`config/`](config/): Example YAML configuration files.
+- [`doc/`](doc/): Technical documentation, derivations, and reference material.
+- [`include/`](include/): Public headers for use by other packages.
+- [`launch/`](launch/): Launch files to start nodes and configurations.
+- [`src/`](src/): Main source code for nodes and utilities.
 
 ## Typical Usage
 
 This package serves as a foundation for controlling and simulating the kinematics of mobile robots, enabling the conversion of velocity commands into wheel movements and vice versa, and facilitating integration with navigation and control systems for ground vehicles.
+
+## Current Example: Three-Swerve
+
+- The currently documented model is a three-swerve configuration. Its kinematic conventions and derivations are available in [`doc/kinematics_en.pdf`](doc/kinematics_en.pdf) and [`doc/kinematics_es.pdf`](doc/kinematics_es.pdf).
+- In the coordinate frame fixed to wheel `i`, `W_i`, the axis `X_Wi` is aligned with the wheel rolling direction (motion can be along `+X_Wi` or `-X_Wi`).
+- In the coordinate frame fixed to wheel `i`, `W_i`, the axis `Y_Wi` indicates the direction of the wheel rotation axis (rotation can be about `+Y_Wi` or `-Y_Wi`).
+- Solver equations use only planar `XY` geometry (ground-plane model).
