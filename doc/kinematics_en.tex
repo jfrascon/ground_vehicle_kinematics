@@ -31,8 +31,8 @@
 \usepackage{hyperref}
 
 % ------- Macros defined in this document -------
-\newcommand{\vect}[1]{\bm{#1}}       % vectors in italic bold
-\newcommand{\mat}[1]{\mathbf{#1}}    % matrices in upright bold
+\newcommand{\vect}[1]{\bm{#1}}       % bold italic vectors
+\newcommand{\mat}[1]{\mathbf{#1}}    % bold upright matrices
 \newcommand{\trans}{\mathsf{T}}      % transpose, use as ^{\trans}
 
 \newcommand{\skewsym}[1]{\left[#1\right]_\times}
@@ -57,8 +57,8 @@
 \newcommand{\ejeXBi}{X_{\frameBi}}
 \newcommand{\ejeYBi}{Y_{\frameBi}}
 
-\newcommand{\frameBOne}{\mathcal{B}_1}
-\newcommand{\frameBN}{\mathcal{B}_N}
+\newcommand{\frameBZero}{\mathcal{B}_0}
+\newcommand{\frameBNMinusOne}{\mathcal{B}_{N-1}}
 
 \newcommand{\frameW}{\mathcal{W}}
 \newcommand{\ejeXW}{X_{\frameW}}
@@ -68,7 +68,7 @@
 \newcommand{\ejeXWi}{X_{\frameWi}}
 \newcommand{\ejeYWi}{Y_{\frameWi}}
 
-\title{Kinematics of ground robots}
+\title{Ground Robotics Kinematics: A Generalized Framework for Forward and Inverse Kinematics of Wheeled Terrestrial Robots}
 \author{Juan Francisco Rascón Crespo}
 \date{\today}
 
@@ -79,24 +79,18 @@
 \maketitle
 
 \begin{abstract}
-    This paper presents a rigorous analytical development of forward and inverse kinematics for wheeled ground robots. Starting from the definition of an invariant base coordinate frame for each wheel, a system of matrix equations is formulated that relates the individual wheel velocities to the state of motion of the chassis. Since platforms with multiple wheels usually generate overdetermined systems, their optimal resolution is addressed using the least squares method and the Moore-Penrose pseudoinverse. The text places a fundamental emphasis on software implementation and numerical stability, justifying in detail the use of Singular Value Decomposition (SVD) to circumvent algebraic instabilities. Additionally, condition number analysis (\(\kappa\)) is introduced as a critical diagnostic tool to distinguish between the computational robustness of the algorithm and the physical feasibility of the mechanical design. Finally, this generalized theoretical framework is applied to the formulation and kinematic resolution of various standard topologies in mobile robotics, ranging from differential traction and Ackermann steering systems, to omnidirectional platforms with Mecanum wheels and \textit{swerve drive} configurations.
+    This document presents a rigorous analytical development of the forward and inverse kinematics for wheeled terrestrial robots. Starting from the definition of an invariant base coordinate system for each wheel, a system of matrix equations is formulated that relates the individual velocities to the chassis's state of motion. Given that platforms with multiple wheels typically generate overdetermined systems, their optimal resolution is addressed using the least squares method and the Moore-Penrose pseudoinverse. The text places a fundamental emphasis on software implementation and numerical stability, comprehensively justifying the use of Singular Value Decomposition (SVD) to bypass algebraic instabilities. Furthermore, the condition number (\(\kappa\)) analysis is introduced as a critical diagnostic tool to distinguish between the computational robustness of the algorithm and the physical viability of the mechanical design. Finally, this generalized theoretical framework is applied to the kinematic formulation and resolution of various standard topologies in mobile robotics, ranging from differential drive and Ackermann steering systems to omnidirectional platforms with Mecanum wheels and \textit{swerve drive} configurations.
 \end{abstract}
 
-\section{Motion constraints imposed by wheels}
+\section{Motion constraints imposed by the wheels}
 
-In a ground robot, the wheels impose motion constraints. In conventional wheels, both steerable and non-steerable, as the wheel rotates about its axis of rotation, it moves along a straight path in a specific direction called the \textbf{rolling direction}.
+In a terrestrial robot, the wheels impose motion constraints. In conventional wheels, whether steerable or non-steerable, as the wheel rotates about its axis of rotation, it moves following a straight path in a specific direction called the \textbf{rolling direction}. In non-steerable conventional wheels, the rolling direction is fixed, always pointing in the same direction, since the wheel cannot change its orientation relative to the chassis. In steerable conventional wheels, the wheel first orients itself toward the desired rolling direction (pivoting on its vertical axis) and then rotates about its axis of rotation to move in that direction. Both steerable and non-steerable conventional wheels cannot move in the direction perpendicular to the rolling direction, which is the direction of their rotation axis. In other words, the lateral velocity of the wheel is zero, which is known as the \textbf{no-lateral-slip constraint}.
 
-In conventional non-steerable wheels, the rolling direction is fixed; it always points in the same direction, since the wheel cannot change its orientation with respect to the chassis.
+Conversely, in omnidirectional and Mecanum/Swedish wheels, due to the presence of free-spinning rollers on their periphery, the rolling direction of the main wheel, although fixed and unchanging over time, does not necessarily have to coincide with the actual direction of the wheel's movement on the ground. The passive rotation of the rollers allows the wheel to have a non-zero lateral velocity (in a direction perpendicular to the rolling direction; \textit{i.e.}, the direction of the wheel's axis of rotation), eliminating the no-lateral-slip constraint.
 
-In conventional steerable wheels, the wheel first orients itself toward the desired rolling direction (pivoting about its vertical axis) and then rotates about its axis of rotation to move in that direction.
+These constraints can be expressed mathematically as equations that relate the linear and angular velocity of the wheel to the robot's velocity. These equations are fundamental for the design of controllers and motion planners for terrestrial robots, as they determine how the robot can move in its environment. By stacking these constraints for each wheel, the forward and inverse kinematics equations can be derived for different terrestrial robot configurations, such as differential drive robots, omnidirectional wheeled robots, and steerable active wheeled robots (swerve drive), among others.
 
-Both steerable and non-steerable conventional wheels cannot move in the direction perpendicular to the rolling direction, which is the direction of their axis of rotation. In other words, the lateral velocity of the wheel is zero, which is known as the \textbf{no lateral slip constraint}.
-
-In contrast, in omnidirectional and Mecanum/Swedish wheels, due to the presence of freely rotating rollers on their periphery, the rolling direction of the main wheel, although fixed and unchanging over time, does not necessarily coincide with the actual direction of motion of the wheel on the ground. The passive rotation of the rollers allows the wheel to have a non-zero lateral velocity (in the direction perpendicular to the rolling direction; i.e., the direction of the wheel's axis of rotation), eliminating the no lateral slip constraint.
-
-These constraints can be expressed mathematically as equations that relate the linear and angular velocity of the wheel to the robot velocity. These equations are fundamental to the design of controllers and motion planners for ground robots, as they determine how the robot can move in its environment. By stacking these constraints for each wheel, the forward and inverse kinematics equations can be derived for different configurations of ground robots, such as robots with differential wheels, robots with omnidirectional wheels, and robots with steerable active wheels (swerve drive), among others.
-
-Figure \ref{fig:wheel-placement} shows the 2D positioning of a wheel with respect to the robot's coordinate frame (CF), \(\frameR\). The term \(\alpha\) represents the angle that the \(\ejeXR\) axis makes with the wheel position vector, \(\vect{d}\), and because of how the wheel is \textit{initially} positioned, it is also the angle that the \(\ejeXR\) axis makes with the \(\ejeYW\) axis. The \(\ejeXW\) axis is perpendicular to the \(\ejeYW\) axis and its orientation with respect to the \(\ejeXR\) axis is \(\psi = \alpha - \frac{\pi}{2}\). The magnitude of the vector \(\vect{d}\) is the distance between the robot CF and the wheel CF, \(\left|\bm{d}\right| = d\).
+Figure \ref{fig:wheel-placement} shows the 2D positioning of a wheel relative to the robot's coordinate system (CS), \(\frameR\). The term \(\alpha\) represents the angle formed by the \(\ejeXR\) axis and the wheel's position vector, \(\vect{d}\), and due to how the wheel is \textit{initially} positioned, it is also the angle formed by the \(\ejeXR\) axis and the \(\ejeYW\) axis. The \(\ejeXW\) axis is perpendicular to the \(\ejeYW\) axis and its orientation with respect to the \(\ejeXR\) axis is \(\psi = \alpha - \frac{\pi}{2}\). The magnitude of the vector \(\vect{d}\) is the distance between the robot's CS and the wheel's CS, \(\left|\bm{d}\right| = d\).
 
 \begin{equation}
     \vect{d} = \begin{bmatrix} d\cos\alpha \\ d\sin\alpha \\ 0 \end{bmatrix}
@@ -105,17 +99,17 @@ Figure \ref{fig:wheel-placement} shows the 2D positioning of a wheel with respec
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\linewidth]{images/wheel_placement.png}
-    \caption{2D positioning of a wheel with respect to the robot CF, \(\frameR\).}
+    \caption{2D positioning of a wheel relative to the robot's CS, \(\frameR\).}
     \label{fig:wheel-placement}
 \end{figure}
 
-Next, an angle \(\beta\) is considered that allows the wheel to be oriented in the desired way with respect to the robot CF, \(\frameR\) (Figure \ref{fig:wheel-orientation}), giving rise to the \textbf{wheel base frame}, \(\frameB\). The CF \(\frameB\) maintains its position and orientation constant over time with respect to the CF \(\frameR\) and is \textit{conveniently suitable} for defining the orientation of the wheel during the vehicle's motion and applying the motion constraints. The final orientation of the wheel is given by the angle \(\psi\), formed between the \(\ejeXR\) axis and the \(\ejeXB\) axis.
+Next, an angle \(\beta\) is considered, which allows the wheel to be oriented in the desired manner with respect to the robot's CS, \(\frameR\) (Figure \ref{fig:wheel-orientation}), giving rise to the \textbf{wheel's base CS}, \(\frameB\). The CS \(\frameB\) maintains a constant position and orientation over time with respect to the CS \(\frameR\) and is \textit{conveniently suitable} for defining the wheel's orientation during the vehicle's movement and applying the motion constraints. The final orientation of the wheel is given by the angle \(\psi\), formed between the \(\ejeXR\) axis and the \(\ejeXB\) axis.
 
 \[
     \psi = \alpha + \beta - \frac{\pi}{2}
 \]
 
-and, to simplify the notation, the symbol \(\phi\) is introduced as:
+And, to simplify the notation, the symbol \(\phi\) is introduced as:
 
 \[
     \phi = \alpha + \beta, \quad \psi = \phi - \frac{\pi}{2}
@@ -124,22 +118,20 @@ and, to simplify the notation, the symbol \(\phi\) is introduced as:
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\linewidth]{images/wheel_orientation.png}
-    \caption{Orientation of the wheel in the direction of interest, using the angle \(\beta\).}
+    \caption{Orientation of the wheel in the direction of interest, through the angle \(\beta\).}
     \label{fig:wheel-orientation}
 \end{figure}
 
-In conventional non-steerable wheels, the \(\ejeXB\) axis and the X axis fixed to the wheel, \(\ejeXW\), which indicates the rolling direction of the wheel, coincide all the time. Just for completeness, it is worth mentioning that in this type of wheels the \(\ejeYB\) axis and the Y axis fixed to the wheel, \(\ejeYW\), which indicates the direction of its axis of rotation, obviously also coincide all the time.
-
-In steerable wheels, the CF fixed to the wheel, \(\frameW\), changes its orientation (angle \(\theta\)) with respect to the CF \(\frameB\); that is, only when \(\theta=0\) do both CFs coincide. See Figure \ref{fig:rolling-direction}.
+In non-steerable conventional wheels, the \(\ejeXB\) axis and the X axis fixed to the wheel, \(\ejeXW\), which indicates the wheel's rolling direction, coincide all the time. Just for the sake of completeness, it is worth mentioning that in this type of wheels, the \(\ejeYB\) axis and the Y axis fixed to the wheel, \(\ejeYW\), which indicates the direction of its rotation axis, obviously also coincide all the time. In steerable wheels, the CS fixed to the wheel, \(\frameW\), changes its orientation (angle \(\theta\)) with respect to the CS \(\frameB\); that is, only when \(\theta=0\) do both CSs coincide. See Figure \ref{fig:rolling-direction}.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\linewidth]{images/rolling_direction.png}
-    \caption{Left: Conventional non-steerable wheel, with a fixed rolling direction. Right: Conventional steerable wheel, with a variable rolling direction, achieved by pivoting the wheel an angle \(\theta\) with respect to the wheel base frame, \(\frameB\).}
+    \caption{Left: Non-steerable conventional wheel, with fixed rolling direction. Right: Steerable conventional wheel, with variable rolling direction, achieved by pivoting the wheel by an angle \(\theta\) relative to the wheel's base CS, \(\frameB\).}
     \label{fig:rolling-direction}
 \end{figure}
 
-The linear velocity of the base, expressed in the robot frame, is denoted as:
+The linear velocity of the base, expressed in the robot's CS, is denoted as:
 
 \begin{equation}
     {}^\frameR \vect{V}_r = \begin{bmatrix} {}^\frameR V_{r,x} \\ {}^\frameR V_{r,y} \\ 0 \end{bmatrix}
@@ -158,25 +150,23 @@ and is expressed in \si{\radian\per\second}.
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\linewidth]{images/wheel_vels.png}
-    \caption{\(\vect{V}_r\) is the robot velocity vector. \(\vect{V}_\omega\) is the tangential velocity vector of the wheel due to the rotation of the chassis. \(\vect{V}\) is the velocity vector of the steerable wheel.}
+    \caption{\(\vect{V}_r\) is the robot's velocity vector. \(\vect{V}_\omega\) is the tangential velocity vector of the wheel due to chassis rotation. \(\vect{V}\) is the velocity vector of the steerable wheel.}
     \label{fig:wheel-vels}
 \end{figure}
 
-The linear velocity of each wheel \(i\), expressed in CF \(\frameR\), is denoted as:
+The linear velocity of each wheel \(i\), expressed in the CS \(\frameR\), is denoted as:
 
 \begin{equation}
     {}^\frameR \vect{V}_{i}  = {}^\frameR \vect{V}_r + \vect{\omega}_r \times {}^\frameR \vect{d}_{i} = {}^\frameR \vect{V}_r + \skewsym{\boldsymbol{\omega}_r}\,{}^\frameR \vect{d}_{i}
     \label{eq:wheel-velocity}
 \end{equation}
 
-where \({}^\frameR \vect{d}_{i}\) is the position vector of wheel \(i\) with respect to CF \(\frameR\), and \(\skewsym{\boldsymbol{\omega}_r}\) is the antisymmetric operator that represents the cross product with \(\boldsymbol{\omega}_r\). The cross product between \(\boldsymbol{\omega}_r\) and \({}^\frameR \vect{d}_{i}\) can be written as a matrix product using the antisymmetric operator \([\cdot]_{\times}\):
-\(\boldsymbol{\omega}_r \times {}^\frameR \vect{d}_{i} = \skewsym{\boldsymbol{\omega}_r}\,{}^\frameR \vect{d}_{i}\), and
-\(\skewsym{\boldsymbol{\omega}_r}\) is defined as:
+where \({}^\frameR \vect{d}_{i}\) is the position vector of wheel \(i\) relative to the CS \(\frameR\), and \(\skewsym{\boldsymbol{\omega}_r}\) is the skew-symmetric operator representing the cross product with \(\boldsymbol{\omega}_r\). The cross product between \(\boldsymbol{\omega}_r\) and \({}^\frameR \vect{d}_{i}\) can be written as a matrix product using the skew-symmetric operator \([\cdot]_{\times}\): \(\boldsymbol{\omega}_r \times {}^\frameR \vect{d}_{i} = \skewsym{\boldsymbol{\omega}_r}\,{}^\frameR \vect{d}_{i}\), and \(\skewsym{\boldsymbol{\omega}_r}\) is defined as:
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\linewidth]{images/wheel_vels_2.png}
-    \caption{Relationship between the components of the wheel velocity vector \(\vect{V}\) in CF \(\frameB\), \({}^{\frameB}V_{x}\) and \({}^{\frameB}V_{y}\), and in CF \(\frameW\), \(v_{\parallel}\) and \(v_{\perp}\).}
+    \caption{Relationship between the components of the wheel's velocity vector \(\vect{V}\) in the CS \(\frameB\), \({}^{\frameB}V_{x}\) and \({}^{\frameB}V_{y}\), and in the CS \(\frameW\), \(v_{\parallel}\) and \(v_{\perp}\).}
     \label{fig:wheel-vels-2}
 \end{figure}
 
@@ -211,27 +201,27 @@ where \({}^\frameR \vect{d}_{i}\) is the position vector of wheel \(i\) with res
         = {}^\frameR \vect{V}_r + \boldsymbol{\omega}_r \times {}^\frameR \vect{d}_i & = \begin{bmatrix}
                                                                                          {}^\frameR V_{r,x} - \omega_{r,z} d_{i} \sin\alpha_i \\
                                                                                          {}^\frameR V_{r,y} + \omega_{r,z} d_{i} \cos\alpha_i
-                                                                                         \end{bmatrix} \\
+                                                                                     \end{bmatrix} \\
                                                                                      & = \begin{bmatrix}
-                                                                                         1 & 0 & -d_{i} \sin\alpha_i           \\
-                                                                                         0 & 1 & \phantom{-}d_{i} \cos\alpha_i
-                                                                                     \end{bmatrix} \begin{bmatrix}
-                                                                                                       {}^\frameR V_{r,x} \\
-                                                                                                       {}^\frameR V_{r,y} \\
-                                                                                                       \omega_{r,z}
-                                                                                                   \end{bmatrix}
+                                                                                             1 & 0 & -d_{i} \sin\alpha_i           \\
+                                                                                             0 & 1 & \phantom{-}d_{i} \cos\alpha_i
+                                                                                         \end{bmatrix} \begin{bmatrix}
+                                                                                                           {}^\frameR V_{r,x} \\
+                                                                                                           {}^\frameR V_{r,y} \\
+                                                                                                           \omega_{r,z}
+                                                                                                       \end{bmatrix}
     \end{aligned}
     \label{eq:wheel-velocity-expanded}
 \end{equation}
 
-The vector \({}^\frameR \vect{V}_{i}\) represents the linear velocity of wheel \(i\) expressed in CF \(\frameR\). To apply motion constraints to each wheel, its velocity must be expressed in its base frame, \(\frameBi\), \({}^{\frameBi} \vect{V}_{i}\).
+The vector \({}^\frameR \vect{V}_{i}\) represents the linear velocity of wheel \(i\) expressed in the CS \(\frameR\). To apply the motion constraints to each wheel, its velocity must be expressed in its base CS, \(\frameBi\), \({}^{\frameBi} \vect{V}_{i}\).
 
 \begin{equation}
     {}^{\frameBi} \vect{V}_{i} = {}^{\frameBi} R(\psi_i)_{\frameR} {}^\frameR \vect{V}_{i}
     \label{eq:vwheel-transform}
 \end{equation}
 
-where the rotation matrix \({}^{\frameBi}  R(\psi_i)_{\frameR}\) represents the orientation of CF \(\frameR\) in CF \(\frameBi\), and is used to convert vectors expressed in CF \(\frameR\) to the base frame of wheel \(i\), \(\frameBi\). The matrix that is known a priori is:
+where the rotation matrix \({}^{\frameBi} R(\psi_i)_{\frameR}\) represents the orientation of the CS \(\frameR\) in the CS \(\frameBi\), and is used to convert vectors expressed in the CS \(\frameR\) to the base CS of wheel \(i\), \(\frameBi\). The matrix known a priori is:
 
 \begin{equation}
     {}^\frameR  R(\psi_i)_{\frameBi} =
@@ -241,7 +231,7 @@ where the rotation matrix \({}^{\frameBi}  R(\psi_i)_{\frameR}\) represents the 
     \end{bmatrix}
 \end{equation}
 
-with \(\psi_i = \phi_i - \frac{\pi}{2} = \alpha_i + \beta_i - \frac{\pi}{2}\), which represents the orientation of CF \(\frameBi\) with respect to CF \(\frameR\). Since rotation matrices are orthogonal, their inverse is equal to their transpose, so:
+with \(\psi_i = \phi_i - \frac{\pi}{2} = \alpha_i + \beta_i - \frac{\pi}{2}\), representing the orientation of the CS \(\frameBi\) relative to the CS \(\frameR\). Since rotation matrices are orthonormal, their inverse is equal to their transpose, thus:
 
 \begin{equation}
     {}^{\frameBi} R(\psi_i)_{\frameR} = \left({}^\frameR  R(\psi_i)_{\frameBi}\right)^{-1} = \left({}^\frameR  R(\psi_i)_{\frameBi}\right)^{\trans} =
@@ -251,7 +241,7 @@ with \(\psi_i = \phi_i - \frac{\pi}{2} = \alpha_i + \beta_i - \frac{\pi}{2}\), w
     \end{bmatrix}
 \end{equation}
 
-The following trigonometric identities are applied to the matrix \({}^{\frameBi} R(\psi_i)_{\frameR}\):
+Next, the following trigonometric identities are applied to the matrix \({}^{\frameBi} R(\psi_i)_{\frameR}\):
 
 \[
     \begin{aligned}
@@ -260,7 +250,7 @@ The following trigonometric identities are applied to the matrix \({}^{\frameBi}
     \end{aligned}
 \]
 
-finally remaining:
+finally yielding:
 
 \begin{equation}
     {}^{\frameBi}  R(\phi_i)_{\frameR} =
@@ -289,17 +279,6 @@ finally remaining:
                                                                                    \end{bmatrix}
     \end{aligned}
 \end{equation}
-
-The velocity \({}^{\frameBi} \vect{V}_i\) can be expressed by its Cartesian components in said base coordinate frame:
-
-\begin{equation}
-    {}^{\frameBi} \vect{V}_i = \begin{bmatrix}
-        {}^{\frameBi}V_{i,x} \\
-        {}^{\frameBi}V_{i,y}
-    \end{bmatrix}
-\end{equation}
-
-where \({}^{\frameBi} V_{i,x}\) and \({}^{\frameBi} V_{i,y}\) are the projections of the velocity vector along the \(\ejeXBi\) and \(\ejeYBi\) axes, respectively.
 
 \begin{equation}
     \begin{bmatrix}
@@ -333,7 +312,7 @@ where \({}^{\frameBi} V_{i,x}\) and \({}^{\frameBi} V_{i,y}\) are the projection
     \end{bmatrix}
 \]
 
-The following trigonometric identities are then applied:
+Next, the following trigonometric identities are applied:
 
 \[
     \begin{aligned}
@@ -342,7 +321,7 @@ The following trigonometric identities are then applied:
     \end{aligned}
 \]
 
-Finally resulting:
+Finally resulting in:
 
 \begin{equation}
     \begin{bmatrix}
@@ -359,21 +338,19 @@ Finally resulting:
     \label{eq:wheel-constraints-final}
 \end{equation}
 
-For each wheel \(i\), a system of 2 linear equations with 3 unknowns is obtained (\({}^\frameR V_{r,x}\), \({}^\frameR V_{r,y}\) and \(\omega_{r,z}\)). In general, for \(N\) wheels, \(2N\) linear equations and 3 unknowns are obtained. Therefore, for \(N \ge 2\), the system is overdetermined.
-
-Equation \ref{eq:wheel-constraints-final} provides the wheel velocity expressed in its base frame \(\frameBi\). However, the physical motion constraints of the wheel originating from its contact with the ground are applied in the wheel's own frame, \(\frameWi\). For this reason, it is necessary to define the intrinsic velocity components of the wheel:
+For each wheel \(i\), a system of 2 linear equations with 3 unknowns (\({}^\frameR V_{r,x}\), \({}^\frameR V_{r,y}\), and \(\omega_{r,z}\)) is obtained. In general, for \(N\) wheels, \(2N\) linear equations and 3 unknowns are obtained. Therefore, for \(N \ge 2\), the system is overdetermined. Equation \ref{eq:wheel-constraints-final} provides the wheel velocity expressed in its base CS \(\frameBi\). However, the physical motion constraints of the wheel originated by its contact with the ground apply in the wheel's own CS, \(\frameWi\). For this reason, it is necessary to define the intrinsic velocity components of the wheel:
 
 \begin{itemize}
-    \item \(v_{i\parallel}\): the velocity component aligned with the rolling direction (\(\ejeXWi\) axis).
-    \item \(v_{i\perp}\): the velocity component perpendicular to the rolling direction (\(\ejeYWi\) axis; i.e., the direction of its axis of rotation).
+    \item \(v_{i\parallel}\): the velocity component aligned with the rolling direction (axis \(\ejeXWi\)).
+    \item \(v_{i\perp}\): the velocity component perpendicular to the rolling direction (axis \(\ejeYWi\); \textit{i.e.}, the direction of its rotation axis).
 \end{itemize}
 
-Depending on whether the wheels used on a platform are conventional non-steerable, conventional steerable, mecanum, or omnidirectional, the geometric relationship between the wheel velocity vector \(\vect{V}\) components in the base frame (\({}^{\frameBi}V_{i,x}, {}^{\frameBi}V_{i,y}\)) and in the frame fixed to the wheel (\(v_{i\parallel}, v_{i\perp}\)) will change. See Figure \ref{fig:wheel-vels-2}. Depending on the platform, different physical constraints will be applied to the \(v_{i\parallel}\) and \(v_{i\perp}\) components, leading to specific expressions that solve the forward and inverse kinematics for the considered platform.
+Depending on whether the wheels used on a platform are non-steerable conventional, steerable conventional, mecanum, or omnidirectional, the geometric relationship between the components of the wheel's velocity vector \(\vect{V}\) in the base CS (\({}^{\frameBi}V_{i,x}, {}^{\frameBi}V_{i,y}\)) and in the wheel-fixed CS (\(v_{i\parallel}, v_{i\perp}\)) will change. See Figure \ref{fig:wheel-vels-2}. Depending on the platform, different physical constraints will apply to the components \(v_{i\parallel}\) and \(v_{i\perp}\), yielding specific expressions that solve the forward and inverse kinematics for the considered platform.
 
 \section{General considerations on forward and inverse kinematics}
 \label{sec:general-considerations}
 
-In general, the forward and inverse kinematics of a ground robot are defined by a matrix expression of the form:
+In general, the forward and inverse kinematics of a terrestrial robot is defined by a matrix expression of the form:
 
 \begin{equation}
     A\mathbf{x}=\mathbf{b}
@@ -387,100 +364,98 @@ where:
 
 \[
     A = \begin{bmatrix}
-        \sin\phi_1 & -\cos\phi_1           & -d_1\cos\beta_1           \\
-        \cos\phi_1 & \phantom{-}\sin\phi_1 & \phantom{-}d_1\sin\beta_1 \\
-        \vdots     & \vdots                & \vdots                    \\
-        \sin\phi_N & -\cos\phi_N           & -d_N\cos\beta_N           \\
-        \cos\phi_N & \phantom{-}\sin\phi_N & \phantom{-}d_N\sin\beta_N
+        \sin\phi_0     & -\cos\phi_0               & -d_0\cos\beta_0                   \\
+        \cos\phi_0     & \phantom{-}\sin\phi_0     & \phantom{-}d_0\sin\beta_0         \\
+        \vdots         & \vdots                    & \vdots                            \\
+        \sin\phi_{N-1} & -\cos\phi_{N-1}           & -d_{N-1}\cos\beta_{N-1}           \\
+        \cos\phi_{N-1} & \phantom{-}\sin\phi_{N-1} & \phantom{-}d_{N-1}\sin\beta_{N-1}
     \end{bmatrix}, \quad \mathbf{x} =
     \begin{bmatrix}
         {}^\frameR V_{r,x} \\
         {}^\frameR V_{r,y} \\
         \omega_{r,z}
     \end{bmatrix}, \quad \mathbf{b} = \begin{bmatrix}
-        {}^{\frameBOne}V_{1,x} \\
-        {}^{\frameBOne}V_{1,y} \\
-        \vdots                 \\
-        {}^{\frameBN}V_{N,x} \\
-        {}^{\frameBN}V_{N,y}
+        {}^{\frameBZero}V_{0,x}        \\
+        {}^{\frameBZero}V_{0,y}        \\
+        \vdots                         \\
+        {}^{\frameBNMinusOne}V_{N-1,x} \\
+        {}^{\frameBNMinusOne}V_{N-1,y}
     \end{bmatrix}
 \]
 
-Given that for any robot with \(N \ge 2\) wheels, \(2N\) equations and only 3 unknowns are obtained, we are faced with an overdetermined linear system. In an ideal purely mathematical scenario, it would be enough to take any subset of 3 linearly independent equations to solve the system and find the chassis velocity, \(\mathbf{x}\). However, in the actual implementation of a ground robot, the equations never fit perfectly due to imperfections such as:
+Given that for any robot with \(N \ge 2\) wheels, \(2N\) equations and only 3 unknowns are obtained, we are dealing with an overdetermined linear system. In a purely mathematical ideal scenario, it would suffice to take any subset of 3 linearly independent equations to solve the system and find the chassis velocity, \(\mathbf{x}\). However, in the real implementation of a terrestrial robot, the equations never match perfectly due to imperfections such as:
 
 \begin{itemize}
-    \item Noise and quantization in the reading of sensors (encoders).
-    \item Small slipping of the wheels on the ground.
+    \item Noise and quantization in sensor (encoder) readings.
+    \item Small wheel slips on the ground.
     \item Slight deviations in the geometric calibration of the base.
 \end{itemize}
 
-Therefore, the system is not solved by searching for an exact algebraic solution, but rather by searching for the estimate \(\hat{\mathbf{x}}\) that minimizes the global quadratic error of all the wheels simultaneously:
+Therefore, the system is not solved by seeking an exact algebraic solution, but rather by finding the estimate \(\hat{\mathbf{x}}\) that minimizes the global squared error of all wheels simultaneously:
 
 \begin{equation}
     \hat{\mathbf{x}} = \arg\min_{\mathbf{x}} \|A\mathbf{x} - \mathbf{b}\|^2
 \end{equation}
 
-The solution to this least squares problem is given by the expression known as Normal Equations, which is obtained from a process of searching for the minimum of the error function (differentiating and equating to zero):
+The solution to this least squares problem is given by the expression known as Normal Equations, which is obtained from a process of searching for the minimum of the error function (differentiating and setting to zero):
 
 \begin{equation}
     A^{\trans} A \mathbf{x} = A^{\trans} \mathbf{b}
 \end{equation}
 
-Therefore, the optimal solution is obtained by:
+Therefore, the optimal solution is obtained through:
 
 \begin{equation}
     \hat{\mathbf{x}} = (A^{\trans}A)^{-1}A^{\trans}\mathbf{b} = A^+\mathbf{b}
 \end{equation}
 
-where \(A^+\) is called the Moore-Penrose pseudoinverse of the \(A\) matrix.
+where \(A^+\) is called the Moore-Penrose pseudoinverse of matrix \(A\).
 
-From the point of view of computational numerical calculation, directly inverting the matrix \((A^{\trans}A)\) can be unstable if the original matrix \(A\) is poorly conditioned. A matrix is considered ill-conditioned when small variations or noise in the input data (the \(\mathbf{b}\) vector) are dramatically amplified, causing erratic calculations in the resulting \(\hat{\mathbf{x}}\) solution. The poor numerical behavior that can arise when using the normal equations formula is because the term \((A^{\trans}A)^{-1}\allowbreak A^{\trans}\) squares the singular values of \(A\). If \(A\) has a small singular value, close to zero, squaring it makes it even smaller. When trying to invert that value, the computer divides by a number almost zero, which causes the results to shoot up to infinity and all precision in the solution is lost.
+From a computational numerical calculation standpoint, directly inverting the matrix \((A^{\trans}A)\) can be unstable if the original matrix \(A\) is ill-conditioned. A matrix is considered ill-conditioned when small variations or noise in the input data (the vector \(\mathbf{b}\)) are drastically amplified, causing erratic calculations in the resulting solution \(\hat{\mathbf{x}}\). The numerical misbehavior that can arise when using the normal equations formula is due to the fact that the term \((A^{\trans}A)^{-1}\allowbreak A^{\trans}\) squares the singular values of \(A\). If \(A\) has a small singular value, close to zero, squaring it makes it even smaller. When attempting to invert that value, the computer divides by a near-zero number, causing the results to spiral to infinity and all precision in the solution to be lost.
 
-Although it is not strictly necessary for the kinematic derivation, for completeness it is useful to assess the geometric robustness of matrix \(A\) using the ratio between its maximum and minimum singular values (\(\kappa = \frac{\sigma_{\max}}{\sigma_{\min}}\)), called the \textbf{condition number}, \(\kappa(A)\). As a reference:
+Although not strictly necessary for kinematics development, for completeness it is noted that to ascertain the geometric robustness of matrix \(A\), the ratio between its maximum and minimum singular values (\(\kappa = \frac{\sigma_{\max}}{\sigma_{\min}}\)) is used, known as the \textbf{condition number}, \(\kappa(A)\). As a reference:
 
 \begin{itemize}
-    \item \(\kappa = 1\): \(A\) is the perfect matrix (example: the Identity matrix or a pure rotation matrix). No loss of precision occurs.
-    \item \(1 < \kappa < 10^2\): \(A\) is well conditioned. The system is robust; sensor errors will not be significantly amplified.
-    \item \(10^3 < \kappa < 10^6\): \(A\) is moderately ill-conditioned. Caution is required, since simple methods such as inverting \((A^{\trans}A)\) may start to produce inaccurate results.
-    \item \(\kappa \approx 10^{12} \text{ a } 10^{15}\): \(A\) is poorly conditioned. The matrix is almost singular (its rows/columns are almost dependent).
-    \item \(\kappa > 10^{16}\): \(A\) is singular and unusable. For a computer working with double precision (64 bits), this means that the matrix cannot be reliably inverted.
+    \item \(\kappa = 1\): \(A\) is the perfect matrix (example: the Identity matrix or a pure rotation matrix). There is no loss of precision.
+    \item \(1 < \kappa < 10^2\): \(A\) is well-conditioned. The system is robust; sensor errors will not be significantly amplified.
+    \item \(10^3 < \kappa < 10^6\): \(A\) is moderately ill-conditioned. Caution must be exercised, as simple methods like inverting \((A^{\trans}A)\) may start to yield imprecise results.
+    \item \(\kappa \approx 10^{12} \text{ to } 10^{15}\): \(A\) is ill-conditioned. The matrix is nearly singular (its rows/columns are almost dependent).
+    \item \(\kappa > 10^{16}\): \(A\) is singular and unusable. For a computer working with double precision (64 bits), this means the matrix cannot be reliably inverted.
 \end{itemize}
 
-To avoid these numerical stability problems that could arise, in practice the pseudoinverse \(A^+\) is obtained by applying the Singular Value Decomposition (SVD) to the original \(A\) matrix. The SVD is the most robust and secure numerical method, since it completely avoids the product \((A^{\trans}A)\) and is capable of handling quasi-singular matrices (situations where the geometric equations of the robot are so similar or redundant that the system is on the verge of not being able to be inverted) without the resulting calculations shooting to infinity. This method works even if the \(A\) matrix does not have full rank (if some of the equations are directly contradictory).
+To avoid these numerical stability issues that could arise, in practice, the pseudoinverse \(A^+\) is obtained by applying Singular Value Decomposition (SVD) to the original matrix \(A\). SVD is the most robust and secure numerical method, as it entirely avoids the product \((A^{\trans}A)\) and is capable of handling near-singular matrices (situations where the robot's geometric equations are so similar or redundant that the system is on the verge of not being invertible) without the resulting calculations spiraling to infinity. This method works even if matrix \(A\) does not have full rank (if some of the equations are directly contradictory).
 
-However, it is essential to make a critical distinction between the mathematical robustness of the software and the physical viability of the robot. If evaluating the constant geometric matrix \(A\) during the design phase results in a high condition number (for example, \(\kappa > 10^3\), and critically if \(\kappa > 10^6\)), \textbf{it will happen that, although the SVD algorithm avoids program collapse by returning a stable mathematical solution (by truncating near-zero values), it will actually be masking a serious defect in the mechanical design.} Physically, this means that the constructive arrangement of the wheels (their \(d_i\) distances or \(\alpha_i, \beta_i\) mounting angles) generates degenerate kinematics, where the chassis loses the ability to move independently in all its degrees of freedom, or where the rolling directions come into direct conflict. In this scenario, even if the software delivers an apparently valid numerical result, the physical robot will suffer uncontrollable drifts, mechanical stress, and erratic motion at the slightest noise in the encoders.
+However, it is fundamental to make a critical distinction between the software's mathematical robustness and the robot's physical viability. If, when evaluating the constant geometric matrix \(A\) during the design phase, a high condition number is obtained (for example, \(\kappa > 10^3\), and critically if \(\kappa > 10^6\)), \textbf{it will happen that, although the SVD algorithm prevents a program crash by returning a stable mathematical solution (by truncating near-null values), in reality, a severe flaw in the mechanical design is being masked.} Physically, this means that the constructive arrangement of the wheels (their distances \(d_i\) or mounting angles \(\alpha_i, \beta_i\)) generates a degenerate kinematics, where the chassis loses the ability to move independently in all its degrees of freedom, or where rolling directions directly conflict. In this scenario, even if the software delivers a seemingly valid numerical result, the physical robot will suffer uncontrollable drifts, mechanical stress, and erratic movements at the slightest noise in the encoders. Therefore, SVD should not be used as an excuse to ignore bad geometry; if the initial condition number is excessively high, the inevitable solution involves redesigning the wheel placement and base orientation in the CAD design until a well-conditioned system is achieved (ideally \(\kappa \le 100\)).
 
-Therefore, the SVD should not be used as a pretext to ignore bad geometry; if the initial condition number is excessively high, the unavoidable solution is to rethink the base location and orientation of the wheels in the CAD design until a well-conditioned system is achieved (ideally \(\kappa \le 100\)).
+SVD decomposes the matrix into \(A = U \Sigma V^{\trans}\), allowing the pseudoinverse to be constructed directly as \(A^+ = V \Sigma^+ U^{\trans}\).
 
-The SVD decomposes the matrix into \(A = U \Sigma V^{\trans}\), allowing the pseudoinverse to be constructed directly as \(A^+ = V \Sigma^+ U^{\trans}\).
+\textbf{Proof:}
 
-\textbf{Derivation:}
-
-If \(A = U \Sigma V^{\trans}\), the transpose property is applied for a product of matrices: \((X Y Z)^{\trans} = Z^{\trans} Y^{\trans} X^{\trans}\) (the order is reversed).
+If \(A = U \Sigma V^{\trans}\), the transpose property for a matrix product is applied: \((X Y Z)^{\trans} = Z^{\trans} Y^{\trans} X^{\trans}\) (the order is reversed).
 
 \begin{equation}
     A^{\trans} = (V^{\trans})^{\trans} \Sigma^{\trans} U^{\trans}
 \end{equation}
 
-Transposing twice returns the original matrix (\((V^{\trans})^{\trans} = V\)), and since \(\Sigma\) is a diagonal matrix that does not change when transposed (\(\Sigma^{\trans} = \Sigma\))\footnote{For the equality \(\Sigma^{\trans} = \Sigma\) to be strictly true, \(\Sigma\) has to be a square matrix. In overdetermined systems, where \(A\) is a rectangular matrix of \(M \times N\), the original \(\Sigma\) matrix is rectangular of \(M \times N\) and \(\Sigma^{\trans}\) would be of \(N \times M\), so the equality would not hold. However, in practice, to solve these systems, Reduced SVD (or \textit{Thin SVD}) is usually used, which cuts the rows of zeros from the \(\Sigma\) matrix, converting it into a square matrix of size \(N \times N\). In this way, it is true that \(\Sigma^{\trans} = \Sigma\) in the Reduced SVD, which allows the \(A^+ = V \Sigma^+ U^{\trans}\) formula to be developed without dimensional conflicts. In the Eigen C++ library, the option combination \texttt{ComputeThinU | ComputeThinV} performs exactly this calculation.}, we obtain:
+Transposing twice returns the original matrix (\((V^{\trans})^{\trans} = V\)), and since \(\Sigma\) is a diagonal matrix that does not change upon transposing (\(\Sigma^{\trans} = \Sigma\))\footnote{For the equality \(\Sigma^{\trans} = \Sigma\) to be strictly true, \(\Sigma\) must be a square matrix. In overdetermined systems, where \(A\) is a rectangular \(M \times N\) matrix, the original \(\Sigma\) matrix is rectangular \(M \times N\) and \(\Sigma^{\trans}\) would be \(N \times M\), hence the equality would not hold. However, in practice, the Reduced SVD (or \textit{Thin SVD}) is typically employed to solve these systems, which trims the rows of zeros from the \(\Sigma\) matrix, converting it into a square \(N \times N\) matrix. In this way, \(\Sigma^{\trans} = \Sigma\) does hold in the Reduced SVD, allowing the formula \(A^+ = V \Sigma^+ U^{\trans}\) to be developed without dimensional conflicts. In the Eigen library for C++, combining the options \texttt{ComputeThinU | ComputeThinV} performs precisely this calculation.}, we obtain:
 
 \begin{equation}
     A^{\trans} = V \Sigma U^{\trans}
 \end{equation}
 
-Substituting into product \(A^{\trans} A\):
+Substituting into the product \(A^{\trans} A\):
 
 \begin{equation}
     A^{\trans} A = (V \Sigma U^{\trans}) (U \Sigma V^{\trans})
 \end{equation}
 
-Due to the associative property of matrices, the internal parentheses can be omitted:
+By the associative property of matrices, the inner parentheses can be omitted:
 
 \begin{equation}
     A^{\trans} A = V \Sigma (U^{\trans} U) \Sigma V^{\trans}
 \end{equation}
 
-The \(U\) matrix is orthogonal, meaning that its transpose multiplied by itself results in the Identity matrix (\(U^{\trans} U = I\)):
+Matrix \(U\) is orthogonal, meaning its transpose multiplied by itself results in the Identity matrix (\(U^{\trans} U = I\)):
 
 \begin{equation}
     A^{\trans} A = V \Sigma I \Sigma V^{\trans}
@@ -492,54 +467,54 @@ Multiplying by the Identity matrix does not alter the result, and \(\Sigma\) mul
     A^{\trans} A = V \Sigma^2 V^{\trans}
 \end{equation}
 
-The inverse is then applied to the entire expression using the inverse property for a product: \((X Y Z)^{-1} = Z^{-1} Y^{-1} X^{-1}\).
+Next, the inverse is applied to the entire expression using the inverse property for a product: \((X Y Z)^{-1} = Z^{-1} Y^{-1} X^{-1}\).
 
 \begin{equation}
     (A^{\trans} A)^{-1} = (V^{\trans})^{-1} (\Sigma^2)^{-1} V^{-1}
 \end{equation}
 
-Since \(V\) is also an orthogonal matrix, its inverse is equal to its transpose, \(V^{-1} = V^{\trans}\), and therefore \((V^{\trans})^{-1} = V\). The inverse of a diagonal matrix \(\Sigma^2\) is denoted simply as \(\Sigma^{-2}\) (which consists of inverting the squared values of its diagonal). Substituting these properties, we obtain:
+Since \(V\) is also an orthogonal matrix, its inverse is equal to its transpose, \(V^{-1} = V^{\trans}\), and thus, \((V^{\trans})^{-1} = V\). The inverse of a diagonal matrix \(\Sigma^2\) is simply denoted as \(\Sigma^{-2}\) (which consists of inverting the squared values of its diagonal). Substituting these properties yields:
 
 \begin{equation}
     (A^{\trans} A)^{-1} = V \Sigma^{-2} V^{\trans}
 \end{equation}
 
-It is now multiplied by \(A^{\trans}\) on the right to complete the expression of the Normal Equations:
+It is now multiplied by \(A^{\trans}\) from the right to complete the Normal Equations expression:
 
 \begin{equation}
     (A^{\trans} A)^{-1} A^{\trans} = (V \Sigma^{-2} V^{\trans}) (V \Sigma U^{\trans})
 \end{equation}
 
-The internal parentheses are removed again for the associative property:
+The inner parentheses are removed again via the associative property:
 
 \begin{equation}
     (A^{\trans} A)^{-1} A^{\trans} = V \Sigma^{-2} (V^{\trans} V) \Sigma U^{\trans}
 \end{equation}
 
-Again, since \(V\) is orthogonal, \(V^{\trans} V = I\). The central term disappears:
+Once more, given that \(V\) is orthogonal, \(V^{\trans} V = I\). The central term disappears:
 
 \begin{equation}
     (A^{\trans} A)^{-1} A^{\trans} = V \Sigma^{-2} \Sigma U^{\trans}
 \end{equation}
 
-At this point we have \(\Sigma^{-2}\) multiplied by \(\Sigma\). Because both are diagonal matrices, the operation is equivalent to multiplying each element of the diagonal of \(\Sigma^{-2}\) by the corresponding element of the diagonal of \(\Sigma\). So each element of the resulting diagonal is the original value of \(\Sigma\) raised to \(-2 + 1 = -1\) (i.e., the inverse of the original values of \(\Sigma\)). This resulting diagonal matrix is denoted as \(\Sigma^+\):
+At this point, we have \(\Sigma^{-2}\) multiplied by \(\Sigma\). Because both are diagonal matrices, the operation is equivalent to multiplying each element of the \(\Sigma^{-2}\) diagonal by the corresponding element of the \(\Sigma\) diagonal. So each element of the resulting diagonal is the original \(\Sigma\) value raised to \(-2 + 1 = -1\) (that is, the reciprocal of the original \(\Sigma\) values). This resulting diagonal matrix is denoted as \(\Sigma^+\):
 
 \begin{itemize}
-    \item If \(A\) \textbf{does not have} full rank, \(\Sigma^+\) is defined as the diagonal matrix containing the inverse of the non-null singular values of \(A\), and zeros in the positions corresponding to the null singular values.
-    \item If \(A\) \textbf{has} full rank, then \(\Sigma^+\) is actually \(\Sigma^{-1}\) (a proper inverse), which is the diagonal matrix containing the inverse of all singular values of \(A\).
+    \item If \(A\) does \textbf{not} have full rank, \(\Sigma^+\) is defined as the diagonal matrix containing the reciprocals of the non-zero singular values of \(A\), and zeros in the positions corresponding to the zero singular values.
+    \item If \(A\) \textbf{has} full rank, then \(\Sigma^+\) is actually \(\Sigma^{-1}\) (a proper inverse), which is the diagonal matrix containing the reciprocals of all the singular values of \(A\).
 \end{itemize}
 
-Finally, substituting \(\Sigma^+\), we arrive at the expression:
+Finally, substituting \(\Sigma^+\), the expression is reached:
 
 \begin{equation}
     (A^{\trans} A)^{-1} A^{\trans} = V \Sigma^+ U^{\trans}
 \end{equation}
 
-As mentioned above, the computational problem arises when the computer evaluates the expression \((A^{\trans} A)^{-1}\) directly, since it must square singular values that could be very close to zero. Trying to invert those squared near-zero values results in numerical overflows. Using the final formula \(V \Sigma^+ U^{\trans}\) directly, as provided by the SVD, the algorithm only inverts the original values (\(\Sigma^+\)), keeping the system stable at all times.
+As previously discussed, the computational problem arises when the computer directly evaluates the expression \((A^{\trans} A)^{-1}\), since it must square singular values that could be very close to zero. When attempting to invert those nearly zero squared values, numerical overflows occur. By using the direct final formula \(V \Sigma^+ U^{\trans}\) provided by SVD, the algorithm only inverts the original values (\(\Sigma^+\)), keeping the system stable at all times.
 
-\section{Kinematics of a robot with a three swerve drive base}
+\section{Kinematics of a three swerve drive robot}
 
-The base with three active steerable wheels (three swerve drive) is an omnidirectional locomotion system. It allows a ground robot to move in any direction without first having to change the orientation of the chassis. Each wheel is oriented independently, so the robot gains maneuverability and flexibility.
+The base with three steerable active wheels (three swerve drive) is an omnidirectional locomotion system. It allows a terrestrial robot to move in any direction without first having to change the chassis orientation. Each wheel is steered independently, so the robot gains maneuverability and flexibility.
 
 \begin{figure}[H]
     \centering
@@ -548,10 +523,13 @@ The base with three active steerable wheels (three swerve drive) is an omnidirec
     \label{fig2:three-swerve-drive-configuration}
 \end{figure}
 
-All wheels have the same radius \(r\) and are located at the same distance \(d\) from the center of the base. Furthermore, in this particular case, we impose:
+All wheels have the same radius \(r\) and are located at the same distance \(d\) from the center of the base. Furthermore, in this particular case, it is imposed:
 
 \[
-    \psi_i = \phi_i - \frac{\pi}{2} = 0 \quad \Longrightarrow \quad \phi_i = \alpha_i + \beta_i = \frac{\pi}{2}, \quad \beta_i = \frac{\pi}{2} - \alpha_i
+    \begin{aligned}
+        \psi_i = \phi_i - \frac{\pi}{2} = 0 \quad          & \Longrightarrow \quad \phi_i = \frac{\pi}{2}             \\
+        \phi_i = \alpha_i + \beta_i = \frac{\pi}{2}, \quad & \Longrightarrow \quad \beta_i = \frac{\pi}{2} - \alpha_i
+    \end{aligned}
 \]
 
 and therefore:
@@ -570,41 +548,141 @@ For the inverted-Y configuration:
 
 \begin{itemize}
     \item \(\alpha \in \left[\frac{\pi}{2}, \pi\right)\) and \(d > 0\)
-    \item Front wheel \((i = 1)\):
+    \item Front wheel \((i = 0)\):
           \[
-              \alpha_1 = 0,\quad \vect{d}_1=(d,0),\quad \beta_1=\frac{\pi}{2}
+              \begin{aligned}
+                  \alpha_0   & = 0                                \\
+                  \vect{d}_0 & =(d\cos 0,\ d\sin 0) = (d, 0)      \\
+                  \beta_0    & =\frac{\pi}{2} - 0 = \frac{\pi}{2}
+              \end{aligned}
           \]
-    \item Left wheel \((i = 2)\):
+    \item Left wheel \((i = 1)\):
           \[
-              \alpha_2=\alpha, \quad \vect{d}_2=(d\cos\alpha,\ d\sin\alpha),\quad \beta_2=\frac{\pi}{2}-\alpha
+              \begin{aligned}
+                  \alpha_1   & = \alpha                           \\
+                  \vect{d}_1 & = (d\cos\alpha, d\sin\alpha) \\
+                  \beta_1    & = \frac{\pi}{2} - \alpha
+              \end{aligned}
           \]
-    \item Right wheel \((i = 3)\):
+    \item Right wheel \((i = 2)\):
           \[
-              \alpha_3=-\alpha, \quad \vect{d}_3=(d\cos\alpha,\ -d\sin\alpha),\quad \beta_3=\frac{\pi}{2}+\alpha
+              \begin{aligned}
+                  \alpha_2   & = -\alpha                                                       \\
+                  \vect{d}_2 & = (d\cos(-\alpha), d\sin(-\alpha)) = (d\cos\alpha, -d\sin\alpha) \\
+                  \beta_2    & = \frac{\pi}{2} - (-\alpha) = \frac{\pi}{2} + \alpha
+              \end{aligned}
           \]
 \end{itemize}
+
+The matrix \(A\) for the inverted-Y configuration is presented below:
+
+\begin{equation}
+    \begin{aligned}
+        A & = \begin{bmatrix}
+                  \sin\phi_0 & -\cos\phi_0           & -d_0\cos\beta_0           \\
+                  \cos\phi_0 & \phantom{-}\sin\phi_0 & \phantom{-}d_0\sin\beta_0 \\
+                  \sin\phi_1 & -\cos\phi_1           & -d_1\cos\beta_1           \\
+                  \cos\phi_1 & \phantom{-}\sin\phi_1 & \phantom{-}d_1\sin\beta_1 \\
+                  \sin\phi_2 & -\cos\phi_2           & -d_2\cos\beta_2           \\
+                  \cos\phi_2 & \phantom{-}\sin\phi_2 & \phantom{-}d_2\sin\beta_2
+              \end{bmatrix} = \begin{bmatrix}
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2}- 0\right)                  \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - 0\right)       \\
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2}-\alpha\right)              \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2}-\alpha\right)    \\
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2}-(-\alpha)\right)           \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2}-(-\alpha)\right)
+                              \end{bmatrix}  = \\
+          & = \begin{bmatrix}
+                  1 & 0 & -d\sin 0                  \\
+                  0 & 1 & \phantom{-}d\cos 0        \\
+                  1 & 0 & -d\sin\alpha              \\
+                  0 & 1 & \phantom{-}d\cos\alpha    \\
+                  1 & 0 & -d\sin(-\alpha)           \\
+                  0 & 1 & \phantom{-}d\cos(-\alpha)
+              \end{bmatrix} = \begin{bmatrix}
+                                  1 & 0 & -y_0           \\
+                                  0 & 1 & \phantom{-}x_0 \\
+                                  1 & 0 & -y_1           \\
+                                  0 & 1 & \phantom{-}x_1 \\
+                                  1 & 0 & -y_2           \\
+                                  0 & 1 & \phantom{-}x_2
+                              \end{bmatrix}
+    \end{aligned}
+\end{equation}
 
 For the Y configuration:
 
 \begin{itemize}
     \item \(\alpha \in \left(0, \frac{\pi}{2}\right]\) and \(d > 0\)
-    \item Rear wheel \((i = 1)\):
+    \item Rear wheel \((i = 0)\):
           \[
-              \alpha_1 = \pi,\quad \vect{d}_1 = (-d, 0),\quad \beta_1 = -\frac{\pi}{2}
+              \begin{aligned}
+                  \alpha_0   & = \pi                                 \\
+                  \vect{d}_0 & =(d\cos \pi,\ d\sin \pi) = (-d, 0)    \\
+                  \beta_0    & =\frac{\pi}{2} - \pi = -\frac{\pi}{2}
+              \end{aligned}
           \]
-    \item Left wheel \((i = 2)\):
+    \item Left wheel \((i = 1)\):
           \[
-              \alpha_2 = \alpha, \quad \vect{d}_2 = (d\cos\alpha,\ d\sin\alpha), \quad \beta_2 = \frac{\pi}{2} - \alpha
+              \begin{aligned}
+                  \alpha_1   & = \alpha                           \\
+                  \vect{d}_1 & = (d\cos\alpha, d\sin\alpha) \\
+                  \beta_1    & = \frac{\pi}{2} - \alpha
+              \end{aligned}
           \]
-    \item Right wheel \((i = 3)\):
+    \item Right wheel \((i = 2)\):
           \[
-              \alpha_3 = -\alpha, \quad \vect{d}_3 = (d\cos\alpha,\ -d\sin\alpha), \quad \beta_3 = \frac{\pi}{2} + \alpha
+              \begin{aligned}
+                  \alpha_2   & = -\alpha                                                        \\
+                  \vect{d}_2 & = (d\cos(-\alpha), d\sin(-\alpha)) = (d\cos\alpha, -d\sin\alpha) \\
+                  \beta_2    & = \frac{\pi}{2} - (-\alpha) = \frac{\pi}{2} + \alpha
+              \end{aligned}
           \]
 \end{itemize}
 
+The matrix \(A\) for the Y configuration is presented below:
+
+\begin{equation}
+    \begin{aligned}
+        A & = \begin{bmatrix}
+                  \sin\phi_0 & -\cos\phi_0           & -d_0\cos\beta_0           \\
+                  \cos\phi_0 & \phantom{-}\sin\phi_0 & \phantom{-}d_0\sin\beta_0 \\
+                  \sin\phi_1 & -\cos\phi_1           & -d_1\cos\beta_1           \\
+                  \cos\phi_1 & \phantom{-}\sin\phi_1 & \phantom{-}d_1\sin\beta_1 \\
+                  \sin\phi_2 & -\cos\phi_2           & -d_2\cos\beta_2           \\
+                  \cos\phi_2 & \phantom{-}\sin\phi_2 & \phantom{-}d_2\sin\beta_2
+              \end{bmatrix} = \begin{bmatrix}
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2} - \pi\right)                 \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - \pi\right)       \\
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2} - \alpha\right)              \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - \alpha\right)    \\
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2} - (-\alpha)\right)           \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - (-\alpha)\right)
+                              \end{bmatrix}  = \\
+          & = \begin{bmatrix}
+                  1 & 0 & -d\sin \pi                \\
+                  0 & 1 & \phantom{-}d\cos \pi      \\
+                  1 & 0 & -d\sin\alpha              \\
+                  0 & 1 & \phantom{-}d\cos\alpha    \\
+                  1 & 0 & -d\sin(-\alpha)           \\
+                  0 & 1 & \phantom{-}d\cos(-\alpha)
+              \end{bmatrix} = \begin{bmatrix}
+                                  1 & 0 & -y_0           \\
+                                  0 & 1 & \phantom{-}x_0 \\
+                                  1 & 0 & -y_1           \\
+                                  0 & 1 & \phantom{-}x_1 \\
+                                  1 & 0 & -y_2           \\
+                                  0 & 1 & \phantom{-}x_2
+                              \end{bmatrix}
+    \end{aligned}
+\end{equation}
+
+Therefore, it is demonstrated that both configurations, inverted-Y and Y, share the same matrix \(A\), which implies that their forward and inverse kinematics are identical. The only difference between both configurations lies in the physical arrangement of the wheels, but kinematically, both are equivalent.
+
 \subsection{Inverse kinematics of the three swerve}
 
-For a conventional steerable wheel, the following holds:
+For a steerable conventional wheel, the following holds:
 
 \begin{equation}
     {}^{\frameWi}\vect{V}_{i} = \begin{bmatrix}
@@ -616,9 +694,7 @@ For a conventional steerable wheel, the following holds:
     \end{bmatrix}
 \end{equation}
 
-where \(v_{i\parallel}\) is the velocity of wheel \(i\) in the rolling direction and \(v_{i\perp}\) is the component perpendicular to the rolling direction, which is zero, since the wheel cannot slip laterally.
-
-Since the steerable wheel must rotate an angle \(\theta_i\) with respect to its base frame \(\frameBi\) to align its rolling direction (\(X_{\frameWi}\) axis) with the wheel's velocity vector \(\vect{V}_i\), it can be easily verified that:
+where \(v_{i\parallel}\) is the velocity of wheel \(i\) in the rolling direction and \(v_{i\perp}\) is the component perpendicular to the rolling direction, which is zero, since the wheel cannot slip laterally. Given that the steerable wheel must rotate by an angle \(\theta_i\) relative to its base CS \(\frameBi\) to align its rolling direction (axis \(X_{\frameWi}\)) with the wheel velocity vector \(\vect{V}_i\), it is evident that:
 
 \begin{equation}
     v_{i\parallel} = \|{}^{\frameBi} \vect{V}_i\| = \sqrt{{}^{\frameBi}V_{i,x}^2 + {}^{\frameBi}V_{i,y}^2} = r\omega_i
@@ -628,20 +704,20 @@ Since the steerable wheel must rotate an angle \(\theta_i\) with respect to its 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\linewidth]{images/three_swerve_drive_steerable_wheel.png}
-    \caption{Conventional steerable wheel aligned with its velocity vector \(\vect{V}_i\) by a rotation of angle \(\theta_i\) with respect to its base CF \(\frameBi\). The rolling direction is defined by the \(X_{\frameWi}\) axis of the CF fixed to wheel \(i\), \(\frameWi\).}
+    \caption{Steerable conventional wheel aligned with its velocity vector \(\vect{V}_i\) via a rotation of angle \(\theta_i\) relative to its base CS \(\frameBi\). The rolling direction is defined by the \(X_{\frameWi}\) axis of the CS fixed to wheel \(i\), \(\frameWi\).}
     \label{fig2:tsd-steerable-wheel}
 \end{figure}
 
 Steps to calculate the inverse kinematics of a robot with a three swerve drive base:
 
 \begin{itemize}
-    \item Knowing the chassis velocity vector \({}^\frameR \vect{V}_r\), the velocity of each wheel \(i\) in its base CF \(\frameBi\), \({}^{\frameBi}\vect{V}_i\), is obtained by applying the coordinate transformation of equation \ref{eq:wheel-constraints-final}.
-    \item The orientation angle \(\theta_i\) that each wheel \(i\) must adopt to align its rolling direction with the velocity vector \({}^{\frameBi} \vect{V}_i\) is calculated using the \(\arctan2\) function.
+    \item Given the chassis velocity vector \({}^\frameR \vect{V}_r\), the velocity of each wheel \(i\) in its base CS \(\frameBi\), \({}^{\frameBi}\vect{V}_i\), is obtained by applying the coordinate transformation of Equation \ref{eq:wheel-constraints-final}.
+    \item The steering angle \(\theta_i\) that each wheel \(i\) must adopt to align its rolling direction with the velocity vector \({}^{\frameBi} \vect{V}_i\) is calculated using the \(\arctan2\) function.
           \begin{equation}
               \theta_i = \arctan2({}^{\frameBi}V_{i,y}, {}^{\frameBi}V_{i,x})
               \label{eq:tsd-inverse-kinematics-angle}
           \end{equation}
-    \item The angular velocity of each wheel \(i\) is calculated from equation \ref{eq:tsd-v_parallel}.
+    \item The angular velocity of each wheel \(i\) is calculated from Expression \ref{eq:tsd-v_parallel}.
           \begin{equation}
               \omega_i = \frac{v_{i\parallel}}{r} = \frac{\|{}^{\frameBi} \vect{V}_i\|}{r} = \frac{\sqrt{{}^{\frameBi}V_{i,x}^2 + {}^{\frameBi}V_{i,y}^2}}{r}
               \label{eq:tsd-inverse-kinematics-angular-speed}
@@ -651,23 +727,23 @@ Steps to calculate the inverse kinematics of a robot with a three swerve drive b
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\linewidth]{images/three_swerve_drive_inverted_y_inverse_kinematics.png}
-    \caption{Inverted-Y configuration. Left: Calculation of the velocity vector of each wheel, \(\vect{V}_i\). Right: Final orientation that each wheel must adopt (\(\theta_i\)) to align its rolling direction with the velocity vector \(\vect{V}_i\).}
+    \caption{Inverted-Y configuration. Left: Calculation of the velocity vector for each wheel, \(\vect{V}_i\). Right: Final orientation that each wheel must adopt (\(\theta_i\)) to align its rolling direction with the velocity vector \(\vect{V}_i\).}
     \label{fig2:tsd-inverted-y-inverse-kinematics}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\linewidth]{images/three_swerve_drive_y_inverse_kinematics.png}
-    \caption{Y configuration. Left: Calculation of the velocity vector of each wheel, \(\vect{V}_i\). Right: Final orientation that each wheel must adopt (\(\theta_i\)) to align its rolling direction with the velocity vector \(\vect{V}_i\).}
+    \caption{Y configuration. Left: Calculation of the velocity vector for each wheel, \(\vect{V}_i\). Right: Final orientation that each wheel must adopt (\(\theta_i\)) to align its rolling direction with the velocity vector \(\vect{V}_i\).}
     \label{fig2:tsd-y-inverse-kinematics}
 \end{figure}
 
 \subsection{Forward kinematics of the three swerve}
 
-Knowing the orientation angle \(\theta_i\) and the angular velocity \(\omega_i\) of each wheel \(i\), the following steps are executed to calculate the forward kinematics of a robot with a three swerve drive base:
+Known the steering angle \(\theta_i\) and the angular velocity \(\omega_i\) of each wheel \(i\), the following steps are executed to calculate the forward kinematics of a robot with a three swerve drive base:
 
 \begin{itemize}
-    \item Calculate the vector \(\mathbf{b} = [{}^{\frameBOne}V_{1,x}, {}^{\frameBOne}V_{1,y}, \ldots, {}^{\frameBN}V_{N,x}, {}^{\frameBN}V_{N,y}]^{\trans}\).\\
+    \item Calculate the vector \(\mathbf{b} = [{}^{\frameBZero}V_{0,x}, {}^{\frameBZero}V_{0,y}, \ldots, {}^{\frameBNMinusOne}V_{N-1,x}, {}^{\frameBNMinusOne}V_{N-1,y}]^{\trans}\).\\
           Where:
           \begin{equation}
               \begin{aligned}
@@ -675,32 +751,7 @@ Knowing the orientation angle \(\theta_i\) and the angular velocity \(\omega_i\)
                   {}^{\frameBi}V_{i,y} & = \|{}^{\frameBi}\vect{V}_i\| \sin\theta_i = v_{i\parallel}\sin\theta_i = r\omega_i\sin\theta_i
               \end{aligned}
           \end{equation}
-    \item Solve the linear system \(A\mathbf{x} = \mathbf{b}\) using the pseudoinverse of \(A\), \(A^+\), as explained in Section \ref{sec:general-considerations}, to obtain the chassis velocity \(\mathbf{x} = [{}^\frameR V_{r,x}, {}^\frameR V_{r,y}, \omega_{r,z}]^{\trans}\).
+    \item Solve the linear system \(A\mathbf{x} = \mathbf{b}\) using the pseudoinverse of \(A\), \(A^+\), as explained in Section \ref{sec:general-considerations}, to obtain the chassis velocity \(\mathbf{x} = [{}^\frameR V_{r,x}, {}^\frameR V_{r,y}, \omega_{r,z}]^{\trans}\). Obviously, using the matrix \(A\) corresponding to the considered wheel configuration, inverted-Y or Y.
 \end{itemize}
-
-Below are the \(A\) matrices for the inverted-Y configuration and the Y configuration.
-
-\[
-    A_{Y-inv} = \begin{bmatrix}
-        0 & -1           & \phantom{-}0           \\
-        1 & \phantom{-}0 & \phantom{-}d           \\
-
-        0 & -1           & -d\sin\alpha           \\
-        1 & \phantom{-}0 & \phantom{-}d\cos\alpha \\
-
-        0 & -1           & \phantom{-}d\sin\alpha \\
-        1 & \phantom{-}0 & \phantom{-}d\cos\\alpha
-    \end{bmatrix}, \qquad
-    A_{Y} = \begin{bmatrix}
-        0 & -1           & \phantom{-}0           \\
-        1 & \phantom{-}0 & -d                     \\
-
-        0 & -1           & -d\sin\alpha           \\
-        1 & \phantom{-}0 & \phantom{-}d\\cos\alpha \\
-
-        0 & -1           & \phantom{-}d\sin\alpha \\
-        1 & \phantom{-}0 & \phantom{-}d\cos\alpha
-    \end{bmatrix}
-\]
 
 \end{document}

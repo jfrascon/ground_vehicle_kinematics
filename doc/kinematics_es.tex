@@ -57,8 +57,8 @@
 \newcommand{\ejeXBi}{X_{\frameBi}}
 \newcommand{\ejeYBi}{Y_{\frameBi}}
 
-\newcommand{\frameBOne}{\mathcal{B}_1}
-\newcommand{\frameBN}{\mathcal{B}_N}
+\newcommand{\frameBZero}{\mathcal{B}_0}
+\newcommand{\frameBNMinusOne}{\mathcal{B}_{N-1}}
 
 \newcommand{\frameW}{\mathcal{W}}
 \newcommand{\ejeXW}{X_{\frameW}}
@@ -68,7 +68,7 @@
 \newcommand{\ejeXWi}{X_{\frameWi}}
 \newcommand{\ejeYWi}{Y_{\frameWi}}
 
-\title{Cinemática de robots terrestres}
+\title{Cinemática de robots terrestres: Un marco generalizado para la cinemática directa e inversa de robots terrestres con ruedas}
 \author{Juan Francisco Rascón Crespo}
 \date{\today}
 
@@ -90,7 +90,7 @@ En las ruedas convencionales no orientables, la dirección de rodadura es fija, 
 
 Tanto las ruedas convencionales orientables como las no orientables no pueden desplazarse en la dirección perpendicular a la dirección de rodadura, que es la dirección de su eje de rotación. Dicho de otra forma, la velocidad lateral de la rueda es nula, lo que se conoce como \textbf{restricción de no deslizamiento lateral}.
 
-Por el contrario, en ruedas omnidireccionales y Mecanum/suecas, debido a la presencia de rodillos en su periferia que giran libremente, la dirección de rodadura de la rueda principal, aunque es fija y no cambia con el transcurrir del tiempo, no tiene por qué coincidir con la dirección de movimiento real de la rueda sobre el suelo. La rotación pasiva de los rodillos permite que la rueda tenga una velocidad lateral no nula (en dirección perpendicular a la dirección de rodadura; i.e, la dirección del eje de rotación de la rueda), eliminando la restricción de no deslizamiento lateral.
+Por el contrario, en ruedas omnidireccionales y Mecanum/suecas, debido a la presencia de rodillos en su periferia que giran libremente, la dirección de rodadura de la rueda principal, aunque es fija y no cambia con el transcurrir del tiempo, no tiene por qué coincidir con la dirección de movimiento real de la rueda sobre el suelo. La rotación pasiva de los rodillos permite que la rueda tenga una velocidad lateral no nula (en dirección perpendicular a la dirección de rodadura; \textit{i.e.}, la dirección del eje de rotación de la rueda), eliminando la restricción de no deslizamiento lateral.
 
 Estas restricciones se pueden expresar matemáticamente como ecuaciones que relacionan la velocidad lineal y angular de la rueda con la velocidad del robot. Estas ecuaciones son fundamentales para el diseño de controladores y planificadores de movimiento para robots terrestres, ya que determinan cómo el robot puede moverse en su entorno.
 
@@ -111,7 +111,7 @@ La magnitud del vector \(\vect{d}\) es la distancia entre el SC del robot y el S
     \label{fig:wheel-placement}
 \end{figure}
 
-A continuación, se considera un ángulo \(\beta\) que permite orientar la rueda de la manera deseada con respecto al SC del robot, \(\frameR\) (figura \ref{fig:wheel-orientation}), dando lugar al \textbf{SC base de la rueda}, \(\frameB\). El SC \(\frameB\) mantiene constante su posición y orientación con el transcurrir del tiempo con respecto del SC \(\frameR\) y resulta \textit{convenientemente adecuado} para definir la orientación de la rueda durante el movimiento del vehículo y aplicar las restricciones de movimiento.
+A continuación, se considera un ángulo \(\beta\) que permite orientar la rueda de la manera deseada con respecto al SC del robot, \(\frameR\) (figura \ref{fig:wheel-orientation}), dando lugar al \textbf{SC base de la rueda}, \(\frameB\). El SC \(\frameB\) mantiene constante su posición y orientación en el tiempo con respecto del SC \(\frameR\) y resulta \textit{convenientemente adecuado} para definir la orientación de la rueda durante el movimiento del vehículo y aplicar las restricciones de movimiento.
 
 La orientación final de la rueda viene dada por el ángulo \(\psi\), formado entre el eje \(\ejeXR\) y el eje \(\ejeXB\).
 
@@ -369,7 +369,7 @@ La ecuación \ref{eq:wheel-constraints-final} proporciona la velocidad de la rue
 
 \begin{itemize}
     \item \(v_{i\parallel}\): la componente de la velocidad alineada con la dirección de rodadura (eje \(\ejeXWi\)).
-    \item \(v_{i\perp}\): la componente de la velocidad perpendicular a la dirección de rodadura (eje \(\ejeYWi\); i.e, la dirección de su eje de rotación).
+    \item \(v_{i\perp}\): la componente de la velocidad perpendicular a la dirección de rodadura (eje \(\ejeYWi\); \textit{i.e.}, la dirección de su eje de rotación).
 \end{itemize}
 
 Dependiendo de si las ruedas usadas en una plataforma son convencionales no orientables, convencionales orientables, mecanum u omnidireccionales, la relación geométrica entre las componentes del vector velocidad de la rueda \(\vect{V}\) en el SC base (\({}^{\frameBi}V_{i,x}, {}^{\frameBi}V_{i,y}\)) y en el SC fijo a la rueda (\(v_{i\parallel}, v_{i\perp}\)) cambiará. Ver figura \ref{fig:wheel-vels-2}. Dependiendo de la plataforma, se aplicarán diferentes restricciones físicas a las componentes \(v_{i\parallel}\) y \(v_{i\perp}\), lo que dará lugar a expresiones específicas que resuelven la cinemática directa e inversa para la plataforma considerada.
@@ -391,22 +391,22 @@ donde:
 
 \[
     A = \begin{bmatrix}
-        \sin\phi_1 & -\cos\phi_1           & -d_1\cos\beta_1           \\
-        \cos\phi_1 & \phantom{-}\sin\phi_1 & \phantom{-}d_1\sin\beta_1 \\
-        \vdots     & \vdots                & \vdots                    \\
-        \sin\phi_N & -\cos\phi_N           & -d_N\cos\beta_N           \\
-        \cos\phi_N & \phantom{-}\sin\phi_N & \phantom{-}d_N\sin\beta_N
+        \sin\phi_0     & -\cos\phi_0               & -d_0\cos\beta_0                   \\
+        \cos\phi_0     & \phantom{-}\sin\phi_0     & \phantom{-}d_0\sin\beta_0         \\
+        \vdots         & \vdots                    & \vdots                            \\
+        \sin\phi_{N-1} & -\cos\phi_{N-1}           & -d_{N-1}\cos\beta_{N-1}           \\
+        \cos\phi_{N-1} & \phantom{-}\sin\phi_{N-1} & \phantom{-}d_{N-1}\sin\beta_{N-1}
     \end{bmatrix}, \quad \mathbf{x} =
     \begin{bmatrix}
         {}^\frameR V_{r,x} \\
         {}^\frameR V_{r,y} \\
         \omega_{r,z}
     \end{bmatrix}, \quad \mathbf{b} = \begin{bmatrix}
-        {}^{\frameBOne}V_{1,x} \\
-        {}^{\frameBOne}V_{1,y} \\
-        \vdots                 \\
-        {}^{\frameBN}V_{N,x} \\
-        {}^{\frameBN}V_{N,y}
+        {}^{\frameBZero}V_{0,x}        \\
+        {}^{\frameBZero}V_{0,y}        \\
+        \vdots                         \\
+        {}^{\frameBNMinusOne}V_{N-1,x} \\
+        {}^{\frameBNMinusOne}V_{N-1,y}
     \end{bmatrix}
 \]
 
@@ -559,7 +559,10 @@ Todas las ruedas tienen el mismo radio \(r\) y están situadas a la misma distan
 Además, en este caso particular se impone:
 
 \[
-    \psi_i = \phi_i - \frac{\pi}{2} = 0 \quad \Longrightarrow \quad \phi_i = \alpha_i + \beta_i = \frac{\pi}{2}, \quad \beta_i = \frac{\pi}{2} - \alpha_i
+    \begin{aligned}
+        \psi_i = \phi_i - \frac{\pi}{2} = 0 \quad          & \Longrightarrow \quad \phi_i = \frac{\pi}{2}             \\
+        \phi_i = \alpha_i + \beta_i = \frac{\pi}{2}, \quad & \Longrightarrow \quad \beta_i = \frac{\pi}{2} - \alpha_i
+    \end{aligned}
 \]
 
 y por tanto:
@@ -578,37 +581,137 @@ Para la configuración Y-invertida:
 
 \begin{itemize}
     \item \(\alpha \in \left[\frac{\pi}{2}, \pi\right)\) y \(d > 0\)
-    \item Rueda frontal \((i = 1)\):
+    \item Rueda frontal \((i = 0)\):
           \[
-              \alpha_1 = 0,\quad \vect{d}_1=(d,0),\quad \beta_1=\frac{\pi}{2}
+              \begin{aligned}
+                  \alpha_0   & = 0                                \\
+                  \vect{d}_0 & =(d\cos 0,\ d\sin 0) = (d, 0)      \\
+                  \beta_0    & =\frac{\pi}{2} - 0 = \frac{\pi}{2}
+              \end{aligned}
           \]
-    \item Rueda izda \((i = 2)\):
+    \item Rueda izquierda \((i = 1)\):
           \[
-              \alpha_2=\alpha, \quad \vect{d}_2=(d\cos\alpha,\ d\sin\alpha),\quad \beta_2=\frac{\pi}{2}-\alpha
+              \begin{aligned}
+                  \alpha_1   & = \alpha                     \\
+                  \vect{d}_1 & = (d\cos\alpha, d\sin\alpha) \\
+                  \beta_1    & = \frac{\pi}{2} - \alpha
+              \end{aligned}
           \]
-    \item Rueda dcha \((i = 3)\):
+    \item Rueda derecha \((i = 2)\):
           \[
-              \alpha_3=-\alpha, \quad \vect{d}_3=(d\cos\alpha,\ -d\sin\alpha),\quad \beta_3=\frac{\pi}{2}+\alpha
+              \begin{aligned}
+                  \alpha_2   & = -\alpha                                                        \\
+                  \vect{d}_2 & = (d\cos(-\alpha), d\sin(-\alpha)) = (d\cos\alpha, -d\sin\alpha) \\
+                  \beta_2    & = \frac{\pi}{2} - (-\alpha) = \frac{\pi}{2} + \alpha
+              \end{aligned}
           \]
 \end{itemize}
+
+A continuación se presenta la matriz \(A\) para la configuración Y-invertida:
+
+\begin{equation}
+    \begin{aligned}
+        A & = \begin{bmatrix}
+                  \sin\phi_0 & -\cos\phi_0           & -d_0\cos\beta_0           \\
+                  \cos\phi_0 & \phantom{-}\sin\phi_0 & \phantom{-}d_0\sin\beta_0 \\
+                  \sin\phi_1 & -\cos\phi_1           & -d_1\cos\beta_1           \\
+                  \cos\phi_1 & \phantom{-}\sin\phi_1 & \phantom{-}d_1\sin\beta_1 \\
+                  \sin\phi_2 & -\cos\phi_2           & -d_2\cos\beta_2           \\
+                  \cos\phi_2 & \phantom{-}\sin\phi_2 & \phantom{-}d_2\sin\beta_2
+              \end{bmatrix} = \begin{bmatrix}
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2}- 0\right)                  \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - 0\right)       \\
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2}-\alpha\right)              \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2}-\alpha\right)    \\
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2}-(-\alpha)\right)           \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2}-(-\alpha)\right)
+                              \end{bmatrix}  = \\
+          & = \begin{bmatrix}
+                  1 & 0 & -d\sin 0                  \\
+                  0 & 1 & \phantom{-}d\cos 0        \\
+                  1 & 0 & -d\sin\alpha              \\
+                  0 & 1 & \phantom{-}d\cos\alpha    \\
+                  1 & 0 & -d\sin(-\alpha)           \\
+                  0 & 1 & \phantom{-}d\cos(-\alpha)
+              \end{bmatrix} = \begin{bmatrix}
+                                  1 & 0 & -y_0           \\
+                                  0 & 1 & \phantom{-}x_0 \\
+                                  1 & 0 & -y_1           \\
+                                  0 & 1 & \phantom{-}x_1 \\
+                                  1 & 0 & -y_2           \\
+                                  0 & 1 & \phantom{-}x_2
+                              \end{bmatrix}
+    \end{aligned}
+\end{equation}
 
 Para la configuración Y:
 
 \begin{itemize}
     \item \(\alpha \in \left(0, \frac{\pi}{2}\right]\) y \(d > 0\)
-    \item Rueda trasera \((i = 1)\):
+    \item Rueda trasera \((i = 0)\):
           \[
-              \alpha_1 = \pi,\quad \vect{d}_1 = (-d, 0),\quad \beta_1 = -\frac{\pi}{2}
+              \begin{aligned}
+                  \alpha_0   & = \pi                                 \\
+                  \vect{d}_0 & =(d\cos \pi,\ d\sin \pi) = (-d, 0)    \\
+                  \beta_0    & =\frac{\pi}{2} - \pi = -\frac{\pi}{2}
+              \end{aligned}
           \]
-    \item Rueda izda \((i = 2)\):
+    \item Rueda izquierda \((i = 1)\):
           \[
-              \alpha_2 = \alpha, \quad \vect{d}_2 = (d\cos\alpha,\ d\sin\alpha), \quad \beta_2 = \frac{\pi}{2} - \alpha
+              \begin{aligned}
+                  \alpha_1   & = \alpha                     \\
+                  \vect{d}_1 & = (d\cos\alpha, d\sin\alpha) \\
+                  \beta_1    & = \frac{\pi}{2} - \alpha
+              \end{aligned}
           \]
-    \item Rueda dcha \((i = 3)\):
+    \item Rueda derecha \((i = 2)\):
           \[
-              \alpha_3 = -\alpha, \quad \vect{d}_3 = (d\cos\alpha,\ -d\sin\alpha), \quad \beta_3 = \frac{\pi}{2} + \alpha
+              \begin{aligned}
+                  \alpha_2   & = -\alpha                                                        \\
+                  \vect{d}_2 & = (d\cos(-\alpha), d\sin(-\alpha)) = (d\cos\alpha, -d\sin\alpha) \\
+                  \beta_2    & = \frac{\pi}{2} - (-\alpha) = \frac{\pi}{2} + \alpha
+              \end{aligned}
           \]
 \end{itemize}
+
+A continuación se presenta la matriz \(A\) para la configuración Y:
+
+\begin{equation}
+    \begin{aligned}
+        A & = \begin{bmatrix}
+                  \sin\phi_0 & -\cos\phi_0           & -d_0\cos\beta_0           \\
+                  \cos\phi_0 & \phantom{-}\sin\phi_0 & \phantom{-}d_0\sin\beta_0 \\
+                  \sin\phi_1 & -\cos\phi_1           & -d_1\cos\beta_1           \\
+                  \cos\phi_1 & \phantom{-}\sin\phi_1 & \phantom{-}d_1\sin\beta_1 \\
+                  \sin\phi_2 & -\cos\phi_2           & -d_2\cos\beta_2           \\
+                  \cos\phi_2 & \phantom{-}\sin\phi_2 & \phantom{-}d_2\sin\beta_2
+              \end{bmatrix} = \begin{bmatrix}
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2} - \pi\right)                 \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - \pi\right)       \\
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2} - \alpha\right)              \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - \alpha\right)    \\
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2} - (-\alpha)\right)           \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - (-\alpha)\right)
+                              \end{bmatrix}  = \\
+          & = \begin{bmatrix}
+                  1 & 0 & -d\sin \pi                \\
+                  0 & 1 & \phantom{-}d\cos \pi      \\
+                  1 & 0 & -d\sin\alpha              \\
+                  0 & 1 & \phantom{-}d\cos\alpha    \\
+                  1 & 0 & -d\sin(-\alpha)           \\
+                  0 & 1 & \phantom{-}d\cos(-\alpha)
+              \end{bmatrix} = \begin{bmatrix}
+                                  1 & 0 & -y_0           \\
+                                  0 & 1 & \phantom{-}x_0 \\
+                                  1 & 0 & -y_1           \\
+                                  0 & 1 & \phantom{-}x_1 \\
+                                  1 & 0 & -y_2           \\
+                                  0 & 1 & \phantom{-}x_2
+                              \end{bmatrix}
+    \end{aligned}
+\end{equation}
+
+Por lo tanto, se demuestra que ambas configuraciones, Y-invertida y Y, comparten la misma matriz \(A\), lo que implica que su cinemática directa e inversa es idéntica. La única diferencia entre ambas configuraciones radica en la disposición física de las ruedas, pero desde el punto de vista cinemático, ambas son equivalentes.
 
 \subsection{Cinemática inversa del three swerve}
 
@@ -675,7 +778,7 @@ Pasos para calcular la cinemática inversa de un robot con base three swerve dri
 Conocidos el ángulo de orientación \(\theta_i\) y la velocidad angular \(\omega_i\) de cada rueda \(i\), se ejecutan los pasos siguientes para calcular la cinemática directa de un robot con base three swerve drive:
 
 \begin{itemize}
-    \item Calcular el vector \(\mathbf{b} = [{}^{\frameBOne}V_{1,x}, {}^{\frameBOne}V_{1,y}, \ldots, {}^{\frameBN}V_{N,x}, {}^{\frameBN}V_{N,y}]^{\trans}\).\\
+    \item Calcular el vector \(\mathbf{b} = [{}^{\frameBZero}V_{0,x}, {}^{\frameBZero}V_{0,y}, \ldots, {}^{\frameBNMinusOne}V_{N-1,x}, {}^{\frameBNMinusOne}V_{N-1,y}]^{\trans}\).\\
           Donde:
           \begin{equation}
               \begin{aligned}
@@ -683,32 +786,7 @@ Conocidos el ángulo de orientación \(\theta_i\) y la velocidad angular \(\omeg
                   {}^{\frameBi}V_{i,y} & = \|{}^{\frameBi}\vect{V}_i\| \sin\theta_i = v_{i\parallel}\sin\theta_i = r\omega_i\sin\theta_i
               \end{aligned}
           \end{equation}
-    \item Resolver el sistema lineal \(A\mathbf{x} = \mathbf{b}\) mediante la pseudoinversa de \(A\), \(A^+\), como se explicó en la Sección \ref{sec:general-considerations}, para obtener la velocidad del chasis \(\mathbf{x} = [{}^\frameR V_{r,x}, {}^\frameR V_{r,y}, \omega_{r,z}]^{\trans}\).
+    \item Resolver el sistema lineal \(A\mathbf{x} = \mathbf{b}\) mediante la pseudoinversa de \(A\), \(A^+\), como se explicó en la Sección \ref{sec:general-considerations}, para obtener la velocidad del chasis \(\mathbf{x} = [{}^\frameR V_{r,x}, {}^\frameR V_{r,y}, \omega_{r,z}]^{\trans}\). Obviamente, usando la matriz \(A\) correspondiente a la configuración de ruedas considerada, Y-invertida o Y.
 \end{itemize}
-
-A continuación se presentan las matrices \(A\) para la configuración Y-invertida y la configuración Y.
-
-\[
-    A_{Y-inv} = \begin{bmatrix}
-        0 & -1           & \phantom{-}0           \\
-        1 & \phantom{-}0 & \phantom{-}d           \\
-
-        0 & -1           & -d\sin\alpha           \\
-        1 & \phantom{-}0 & \phantom{-}d\cos\alpha \\
-
-        0 & -1           & \phantom{-}d\sin\alpha \\
-        1 & \phantom{-}0 & \phantom{-}d\cos\alpha
-    \end{bmatrix}, \qquad
-    A_{Y} = \begin{bmatrix}
-        0 & -1           & \phantom{-}0           \\
-        1 & \phantom{-}0 & -d                     \\
-
-        0 & -1           & -d\sin\alpha           \\
-        1 & \phantom{-}0 & \phantom{-}d\cos\alpha \\
-
-        0 & -1           & \phantom{-}d\sin\alpha \\
-        1 & \phantom{-}0 & \phantom{-}d\cos\alpha
-    \end{bmatrix}
-\]
 
 \end{document}
