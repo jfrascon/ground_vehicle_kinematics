@@ -551,25 +551,25 @@ For the inverted-Y configuration:
     \item Front wheel \((i = 0)\):
           \[
               \begin{aligned}
-                  \alpha_0   & = 0                                \\
-                  \vect{d}_0 & =(d\cos 0,\ d\sin 0) = (d, 0)      \\
-                  \beta_0    & =\frac{\pi}{2} - 0 = \frac{\pi}{2}
+                  \alpha_0   & = 0                                                              \\
+                  \vect{d}_0 & = (d\cos\alpha_0,\ d\sin\alpha_0) = (d\cos 0,\ d\sin 0) = (d, 0) \\
+                  \beta_0    & = \frac{\pi}{2} - \alpha_0 = \frac{\pi}{2} - 0 = \frac{\pi}{2}
               \end{aligned}
           \]
     \item Left wheel \((i = 1)\):
           \[
               \begin{aligned}
-                  \alpha_1   & = \alpha                           \\
-                  \vect{d}_1 & = (d\cos\alpha, d\sin\alpha) \\
-                  \beta_1    & = \frac{\pi}{2} - \alpha
+                  \alpha_1   & = \alpha                                                      \\
+                  \vect{d}_1 & = (d\cos\alpha_1, d\sin\alpha_1) = (d\cos\alpha, d\sin\alpha) \\
+                  \beta_1    & = \frac{\pi}{2} - \alpha_1 = \frac{\pi}{2} - \alpha
               \end{aligned}
           \]
     \item Right wheel \((i = 2)\):
           \[
               \begin{aligned}
-                  \alpha_2   & = -\alpha                                                       \\
-                  \vect{d}_2 & = (d\cos(-\alpha), d\sin(-\alpha)) = (d\cos\alpha, -d\sin\alpha) \\
-                  \beta_2    & = \frac{\pi}{2} - (-\alpha) = \frac{\pi}{2} + \alpha
+                  \alpha_2   & = -\alpha                                                                                         \\
+                  \vect{d}_2 & = (d\cos\alpha_2, d\sin\alpha_2) = (d\cos(-\alpha), d\sin(-\alpha)) = (d\cos\alpha, -d\sin\alpha) \\
+                  \beta_2    & = \frac{\pi}{2} - \alpha_2 = \frac{\pi}{2} - (-\alpha) = \frac{\pi}{2} + \alpha
               \end{aligned}
           \]
 \end{itemize}
@@ -586,20 +586,20 @@ The matrix \(A\) for the inverted-Y configuration is presented below:
                   \sin\phi_2 & -\cos\phi_2           & -d_2\cos\beta_2           \\
                   \cos\phi_2 & \phantom{-}\sin\phi_2 & \phantom{-}d_2\sin\beta_2
               \end{bmatrix} = \begin{bmatrix}
-                                  1 & 0 & -d\cos\left(\frac{\pi}{2}- 0\right)                  \\
-                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - 0\right)       \\
-                                  1 & 0 & -d\cos\left(\frac{\pi}{2}-\alpha\right)              \\
-                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2}-\alpha\right)    \\
-                                  1 & 0 & -d\cos\left(\frac{\pi}{2}-(-\alpha)\right)           \\
-                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2}-(-\alpha)\right)
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2}- \alpha_0\right)            \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - \alpha_0\right) \\
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2}-\alpha_1\right)             \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2}-\alpha_1\right)   \\
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2}-\alpha_2\right)             \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2}-\alpha_2\right)
                               \end{bmatrix}  = \\
           & = \begin{bmatrix}
-                  1 & 0 & -d\sin 0                  \\
-                  0 & 1 & \phantom{-}d\cos 0        \\
-                  1 & 0 & -d\sin\alpha              \\
-                  0 & 1 & \phantom{-}d\cos\alpha    \\
-                  1 & 0 & -d\sin(-\alpha)           \\
-                  0 & 1 & \phantom{-}d\cos(-\alpha)
+                  1 & 0 & -d\sin\alpha_0           \\
+                  0 & 1 & \phantom{-}d\cos\alpha_0 \\
+                  1 & 0 & -d\sin\alpha_1           \\
+                  0 & 1 & \phantom{-}d\cos\alpha_1 \\
+                  1 & 0 & -d\sin\alpha_2           \\
+                  0 & 1 & \phantom{-}d\cos\alpha_2
               \end{bmatrix} = \begin{bmatrix}
                                   1 & 0 & -y_0           \\
                                   0 & 1 & \phantom{-}x_0 \\
@@ -618,25 +618,25 @@ For the Y configuration:
     \item Rear wheel \((i = 0)\):
           \[
               \begin{aligned}
-                  \alpha_0   & = \pi                                 \\
-                  \vect{d}_0 & =(d\cos \pi,\ d\sin \pi) = (-d, 0)    \\
-                  \beta_0    & =\frac{\pi}{2} - \pi = -\frac{\pi}{2}
+                  \alpha_0   & = \pi                                                             \\
+                  \vect{d}_0 & = (d\cos\alpha_0, d\sin\alpha_0) = (d\cos\pi, d\sin\pi) = (-d, 0) \\
+                  \beta_0    & = \frac{\pi}{2} - \alpha_0 = \frac{\pi}{2} - \pi = -\frac{\pi}{2}
               \end{aligned}
           \]
     \item Left wheel \((i = 1)\):
           \[
               \begin{aligned}
-                  \alpha_1   & = \alpha                           \\
-                  \vect{d}_1 & = (d\cos\alpha, d\sin\alpha) \\
-                  \beta_1    & = \frac{\pi}{2} - \alpha
+                  \alpha_1   & = \alpha                                                      \\
+                  \vect{d}_1 & = (d\cos\alpha_1, d\sin\alpha_1) = (d\cos\alpha, d\sin\alpha) \\
+                  \beta_1    & = \frac{\pi}{2} - \alpha_1 = \frac{\pi}{2} - \alpha
               \end{aligned}
           \]
     \item Right wheel \((i = 2)\):
           \[
               \begin{aligned}
-                  \alpha_2   & = -\alpha                                                        \\
-                  \vect{d}_2 & = (d\cos(-\alpha), d\sin(-\alpha)) = (d\cos\alpha, -d\sin\alpha) \\
-                  \beta_2    & = \frac{\pi}{2} - (-\alpha) = \frac{\pi}{2} + \alpha
+                  \alpha_2   & = -\alpha                                                                                         \\
+                  \vect{d}_2 & = (d\cos\alpha_2, d\sin\alpha_2) = (d\cos(-\alpha), d\sin(-\alpha)) = (d\cos\alpha, -d\sin\alpha) \\
+                  \beta_2    & = \frac{\pi}{2} - \alpha_2 = \frac{\pi}{2} - (-\alpha) = \frac{\pi}{2} + \alpha
               \end{aligned}
           \]
 \end{itemize}
@@ -653,20 +653,20 @@ The matrix \(A\) for the Y configuration is presented below:
                   \sin\phi_2 & -\cos\phi_2           & -d_2\cos\beta_2           \\
                   \cos\phi_2 & \phantom{-}\sin\phi_2 & \phantom{-}d_2\sin\beta_2
               \end{bmatrix} = \begin{bmatrix}
-                                  1 & 0 & -d\cos\left(\frac{\pi}{2} - \pi\right)                 \\
-                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - \pi\right)       \\
-                                  1 & 0 & -d\cos\left(\frac{\pi}{2} - \alpha\right)              \\
-                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - \alpha\right)    \\
-                                  1 & 0 & -d\cos\left(\frac{\pi}{2} - (-\alpha)\right)           \\
-                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - (-\alpha)\right)
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2} - \alpha_0\right)           \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - \alpha_0\right) \\
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2} - \alpha_1\right)           \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - \alpha_1\right) \\
+                                  1 & 0 & -d\cos\left(\frac{\pi}{2} - \alpha_2\right)           \\
+                                  0 & 1 & \phantom{-}d\sin\left(\frac{\pi}{2} - \alpha_2\right)
                               \end{bmatrix}  = \\
           & = \begin{bmatrix}
-                  1 & 0 & -d\sin \pi                \\
-                  0 & 1 & \phantom{-}d\cos \pi      \\
-                  1 & 0 & -d\sin\alpha              \\
-                  0 & 1 & \phantom{-}d\cos\alpha    \\
-                  1 & 0 & -d\sin(-\alpha)           \\
-                  0 & 1 & \phantom{-}d\cos(-\alpha)
+                  1 & 0 & -d\sin\alpha_0           \\
+                  0 & 1 & \phantom{-}d\cos\alpha_0 \\
+                  1 & 0 & -d\sin\alpha_1           \\
+                  0 & 1 & \phantom{-}d\cos\alpha_1 \\
+                  1 & 0 & -d\sin\alpha_2           \\
+                  0 & 1 & \phantom{-}d\cos\alpha_2
               \end{bmatrix} = \begin{bmatrix}
                                   1 & 0 & -y_0           \\
                                   0 & 1 & \phantom{-}x_0 \\
