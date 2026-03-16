@@ -16,9 +16,9 @@ This package provides utilities and ROS 2 nodes to compute forward and inverse k
 
 - [`config/`](config/): Example YAML configuration files.
 - [`doc/`](doc/): Technical documentation, derivations, and reference material.
-- [`include/`](include/): Public headers for use by other packages.
+- [`include/`](include/): Public headers for types, solvers, and ROS-facing interfaces.
 - [`launch/`](launch/): Launch files to start nodes and configurations.
-- [`src/`](src/): Main source code for nodes and utilities.
+- [`src/`](src/): Main source code for solvers and ROS nodes.
 
 ## Typical Usage
 
@@ -27,6 +27,7 @@ This package serves as a foundation for controlling and simulating the kinematic
 ## Current Example: Three-Swerve
 
 - The currently documented model is a three-swerve configuration. Its kinematic conventions and derivations are available in [`doc/kinematics_en.pdf`](doc/kinematics_en.pdf) and [`doc/kinematics_es.pdf`](doc/kinematics_es.pdf).
+- The direct kinematics of the current three-swerve implementation are formulated as a least-squares problem `A x = b` solved with a precomputed SVD-based pseudoinverse.
 - In the coordinate frame fixed to wheel `i`, `W_i`, the axis `X_Wi` is aligned with the wheel rolling direction (motion can be along `+X_Wi` or `-X_Wi`).
 - In the coordinate frame fixed to wheel `i`, `W_i`, the axis `Y_Wi` indicates the direction of the wheel rotation axis (rotation can be about `+Y_Wi` or `-Y_Wi`).
 - Solver equations use only planar `XY` geometry (ground-plane model).

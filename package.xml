@@ -3,7 +3,7 @@
   <name>ground_vehicle_kinematics</name>
   <version>0.7.0</version>
   <description>
-    Package to compute direc and inverse kinematics for ground vehicles
+    Package to compute direct and inverse kinematics for ground vehicles
   </description>
   <maintainer email="jfrascon@gmail.com">Juan Francisco Rascon Crespo</maintainer>
   <license>Apache-2.0</license>
@@ -23,6 +23,10 @@
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>rclcpp</depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

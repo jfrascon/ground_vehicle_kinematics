@@ -1,77 +1,82 @@
 # Since this parameter file uses variable expansion, it is meant to be use along with an instruction
-# ParameterFile(<params_file>, allow_substs=True) in a launch file, where the launch argument 'robot_prefix' is defined
-# prior to including this parameter file.
+# ParameterFile(<params_file>, allow_substs=True) in a launch file
 /**/three_swerve_kinematics:
   ros__parameters:
     # use_sim_time IS automatically handled, no need to specify here.
 
-    initial_sw_states_reception_period: 10.0 # seconds to wait for the initial JointState seed.
+    # Why this parameter exists:
+    # Inverse kinematics can have more than one valid solution.
+    # To choose the best one, the node needs the current wheel states from the last received
+    # JointState message.
+    # If no JointState has arrived yet, the current state is unknown and the first command can be
+    # abrupt.
+    # This value defines a waiting time at startup to receive that first JointState.
+    # During this waiting time, twist commands are ignored.
+    # Commands are accepted when the first JointState arrives or when the waiting time expires.
+    initial_wheel_states_reception_period: 10.0 # seconds
 
-    # Most of the values found here can be obtained either from the URDF or by measuring the real robot.
+    # Numerical parameters of the direct-kinematics least-squares solver.
+    direct_solver:
+      relative_singular_value_threshold: 1.0e-6
+      tikhonov_lambda: 1.0e-4
+
+    # Read the document package://ground_vehicle_kinematics/doc/kinematics_en.pdf
+    # for more details about the kinematic configuration described in this parameter file.
+
+    # Wheel positions are described per wheel.
+    # Each wheel uses:
+    # - radius: wheel radius
+    # - dist: distance from the robot base origin to the wheel position
+    # - alpha: wheel position angle in radians
+    # - beta: wheel orientation angle in radians
+
     steerable_wheels:
-      # steerable_wheel_0 is located on the x-axis of the robot, either with positive or negative x coordinate,
-      # but with y=0.
+      # The steetable_wheels presented here define a Y-inverted geometry:
+      # - steerable_wheel_0: wheel on the robot X axis.
+      # - steerable_wheel_1: left wheel.
+      # - steerable_wheel_2: right wheel.
 
       steerable_wheel_0:
-        name: "$(var robot_prefix)st_wheel_0"
         radius: 0.10
+        dist: 0.50
+        alpha: 3.141592653589793 # rad = pi
+        beta: -1.5707963267948966 # rad = pi/2 - alpha_0
+        name: "$(var robot_prefix)steerable_wheel_0"
         steerable_joint:
-          name: "$(var robot_prefix)st_wheel_0_steerable_joint"
-          parent_link_name: "$(var robot_prefix)base_link"
-          child_link_name: "$(var robot_prefix)st_wheel_0_steerable_link"
-          origin: { x: 0.35, y: 0.0, z: 0.0, R: 0.0, P: 0.0, Y: 0.0 }
+          name: "$(var robot_prefix)steerable_wheel_0_steerable_joint"
           # Note: If you want the wheel to be able to reach +-pi rad angle (+-180 degress), set limits to +-3.1416.
           # pi = 3.141592654.... < 3.1416
           limits: { lower: -3.1416, upper: 3.1416 } # rad
         rotation_joint:
-          name: "$(var robot_prefix)st_wheel_0_joint"
-          parent_link_name: "$(var robot_prefix)st_wheel_0_steerable_link"
-          child_link_name: "$(var robot_prefix)st_wheel_0_link"
-          origin: { x: 0.0, y: 0.0, z: -0.1, R: 0.0, P: 0.0, Y: 0.0 }
+          name: "$(var robot_prefix)steerable_wheel_0_rotation_joint"
           limits: { lower: -50.0, upper: 50.0 } # rad/s
 
-      # steerable_wheel_1 is the one with steerable_joint.origin.y > 0.
-      # This wheel also has an opposite sign for steerable_joint.origin.x coordinate compared to
-      # steerable_wheel_0.steerable_joint.origin.x.
-      # If steerable_wheel_0.steerable_joint.origin.x > 0, then steerable_wheel_1.steerable_joint.origin.x < 0, and
-      # vice versa.
       steerable_wheel_1:
-        name: "$(var robot_prefix)st_wheel_1"
         radius: 0.10
+        dist: 0.50
+        alpha: 2.6878070480712677 # rad = 154 deg
+        beta: -1.117010721276371 # rad = pi/2 - alpha_1
+        name: "$(var robot_prefix)steerable_wheel_1"
         steerable_joint:
-          name: "$(var robot_prefix)st_wheel_1_steerable_joint"
-          parent_link_name: "$(var robot_prefix)base_link"
-          child_link_name: "$(var robot_prefix)st_wheel_1_steerable_link"
-          origin: { x: -0.35, y: 0.25, z: 0.0, R: 0.0, P: 0.0, Y: 0.0 }
+          name: "$(var robot_prefix)steerable_wheel_1_steerable_joint"
           # Note: If you want the wheel to be able to reach +-pi rad angle (+-180 degress), set limits to +-3.1416.
           # pi = 3.141592654.... < 3.1416
           limits: { lower: -3.1416, upper: 3.1416 } # rad
         rotation_joint:
-          name: "$(var robot_prefix)st_wheel_1_joint"
-          parent_link_name: "$(var robot_prefix)st_wheel_1_steerable_link"
-          child_link_name: "$(var robot_prefix)st_wheel_1_link"
-          origin: { x: 0.0, y: 0.0, z: -0.1, R: 0.0, P: 0.0, Y: 0.0 }
+          name: "$(var robot_prefix)steerable_wheel_1_rotation_joint"
           limits: { lower: -50.0, upper: 50.0 } # rad/s
 
-      # steerable_wheel_2 is the one with steerable_joint.origin.y < 0.
-      # This wheel also has an opposite sign for steerable_joint.origin.x coordinate compared to
-      # steerable_wheel_0.steerable_joint.origin.x.
-      # If steerable_wheel_0.steerable_joint.origin.x > 0, then steerable_wheel_2.steerable_joint.origin.x < 0, and
-      # vice versa.
       steerable_wheel_2:
-        name: "$(var robot_prefix)st_wheel_2"
         radius: 0.10
+        dist: 0.50
+        alpha: -2.6878070480712677 # rad = -154 deg
+        beta: 4.258603374866164 # rad = pi/2 - alpha_2 = pi/2 - (-alpha_1) = pi/2 + alpha_1
+        name: "$(var robot_prefix)steerable_wheel_2"
         steerable_joint:
-          name: "$(var robot_prefix)st_wheel_2_steerable_joint"
-          parent_link_name: "$(var robot_prefix)base_link"
-          child_link_name: "$(var robot_prefix)st_wheel_2_steerable_link"
-          origin: { x: -0.35, y: -0.25, z: 0.0, R: 0.0, P: 0.0, Y: 0.0 }
+          name: "$(var robot_prefix)steerable_wheel_2_steerable_joint"
           # Note: If you want the wheel to be able to reach +-pi rad angle (+-180 degress), set limits to +-3.1416.
           # pi = 3.141592654.... < 3.1416
           limits: { lower: -3.1416, upper: 3.1416 } # rad
         rotation_joint:
-          name: "$(var robot_prefix)st_wheel_2_joint"
-          parent_link_name: "$(var robot_prefix)st_wheel_2_steerable_link"
-          child_link_name: "$(var robot_prefix)st_wheel_2_link"
-          origin: { x: 0.0, y: 0.0, z: -0.1, R: 0.0, P: 0.0, Y: 0.0 }
+          name: "$(var robot_prefix)steerable_wheel_2_rotation_joint"
           limits: { lower: -50.0, upper: 50.0 } # rad/s

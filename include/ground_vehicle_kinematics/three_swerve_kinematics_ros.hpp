@@ -1,5 +1,10 @@
 #pragma once
 
+/**
+ * @file three_swerve_kinematics_ros.hpp
+ * @brief ROS2 node for the three-swerve kinematics solver.
+ */
+
 #include <array>
 #include <chrono>
 #include <memory>
@@ -12,60 +17,97 @@
 #include <actuator_msgs/msg/actuators.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
-#include <std_msgs/msg/float64.hpp>
 
-#include "ground_vehicle_kinematics/core/three_swerve_kinematics.hpp"
-#include "ground_vehicle_kinematics/core/types.hpp"
-#include "ground_vehicle_kinematics/parameter_utils.hpp"
+#include "ground_vehicle_kinematics/types.hpp"
+#include "ground_vehicle_kinematics/solvers/three_swerve_kinematics.hpp"
 
 namespace ground_vehicle_kinematics
 {
-
-  /// Lifecycle-aware ROS wrapper that exposes the three-module swerve solver over topics.
+  /**
+   * @brief ROS2 node that solves direct and inverse three-swerve kinematics through topics.
+   */
   class ThreeSwerveKinematicsSolverRos: public rclcpp::Node
   {
     public:
+    /**
+     * @brief Build the ROS node.
+     * @param options ROS2 node options.
+     * @throws std::invalid_argument If wheel geometry or joint limits are invalid.
+     */
     explicit ThreeSwerveKinematicsSolverRos(const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
-    void joint_state_cb(const sensor_msgs::msg::JointState::SharedPtr msg);
+    /**
+     * @brief Process incoming joint states and solve direct kinematics.
+     * @param msg Joint-state message.
+     */
+    void joint_state_cb(const sensor_msgs::msg::JointState::ConstSharedPtr msg);
 
+    /**
+     * @brief Process incoming twist commands and solve inverse kinematics.
+     * @param msg Twist command message.
+     */
     void twist_cb(const geometry_msgs::msg::Twist::SharedPtr msg);
 
     private:
-    // Message 'JointStates' on topic 'iput/joint_states' is received and message 'Twist' is published on
-    // topic 'output/twist'.
+    /** @brief Input topic for wheel/joint states. */
     static constexpr const char* input_joint_states_topic_{"mobile_base_kinematics/joint_states"};
+
+    /** @brief Output topic for solved chassis twist. */
     static constexpr const char* output_twist_topic_{"mobile_base_kinematics/twist"};
 
-    // Message 'Twist' on topic 'input/twist' is received and message JointStates is published on topic
-    // 'output/joint_states'
+    /** @brief Input topic for twist commands. */
     static constexpr const char* input_twist_topic_{"mobile_base_kinematics/twist_cmd"};
+
+    /** @brief Output topic for solved wheel commands. */
     static constexpr const char* output_joint_commands_topic_{"mobile_base_kinematics/joint_commands"};
 
-    // Subscriptions and publishers.
+    /**
+     * @brief YAML base paths of the three wheel entries, in the fixed wheel order used by this node.
+     */
+    // Wheel 0 is on the X axis. Wheel 1 is the left wheel. Wheel 2 is the right wheel.
+    inline static const std::array<std::string, 3> wheel_paths_{
+      "steerable_wheels.steerable_wheel_0",
+      "steerable_wheels.steerable_wheel_1",
+      "steerable_wheels.steerable_wheel_2",
+    };
+
+    /** @brief Subscription to joint states. */
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_states_sub_;
-    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr twist_sub_;
+
+    /** @brief Subscription to twist commands. */
+    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr twist_cmd_sub_;
+
+    /** @brief Publisher for solved chassis twist. */
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_pub_;
-    rclcpp::Publisher<actuator_msgs::msg::Actuators>::SharedPtr joint_commands_pub_;
 
-    std::array<SteerableWheelDescriptor, 3> st_wheel_descs_;
-    std::array<SteerableWheelCommand, 3> prev_st_wheel_commands_;
+    /** @brief Publisher for solved wheel/joint commands. */
+    rclcpp::Publisher<actuator_msgs::msg::Actuators>::SharedPtr joint_cmd_pub_;
 
-    // Prefix to use with joint names.
-    std::string robot_prefix_;
+    /** @brief Three-swerve solver used by this node. */
+    std::unique_ptr<ThreeSwerveKinematicsSolver> solver_;
 
+    /** @brief Time at which twist commands start being accepted. */
     rclcpp::Time t_start_pub_commands_;
+
+    /** @brief True once the first valid JointState message has been received. */
     bool received_initial_joint_states_{false};
 
-    // Loggers (initialized in ctor initializer list)
+    /** @brief Logger for twist callback. */
     rclcpp::Logger twist_cb_logger_;
+
+    /** @brief Logger for joint-state callback. */
     rclcpp::Logger joint_state_cb_logger_;
 
-    void check_st_wheel_relations();
+    /**
+     * @brief Build the three-swerve solver configuration from ROS parameters.
+     * @return Three-swerve solver configuration.
+     */
+    ThreeSwerveKinematicsSolverConfig create_solver_config() const;
 
+    /**
+     * @brief Create ROS subscriptions and publishers.
+     */
     void create_subs_pubs();
-
-    void process_st_wheel_parameters();
   };
 
 }  // namespace ground_vehicle_kinematics
