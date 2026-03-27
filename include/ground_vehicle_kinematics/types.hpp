@@ -343,9 +343,9 @@ namespace ground_vehicle_kinematics
      * @param rotation_joint_name Rotation-joint name.
      * @param rotation_joint_lower Rotation-joint lower limit.
      * @param rotation_joint_upper Rotation-joint upper limit.
-     * @param steerable_joint_name Steerable-joint name.
-     * @param steerable_joint_lower Steerable-joint lower limit.
-     * @param steerable_joint_upper Steerable-joint upper limit.
+     * @param steering_joint_name Steering-joint name.
+     * @param steering_joint_lower Steering-joint lower limit.
+     * @param steering_joint_upper Steering-joint upper limit.
      */
     SteerableWheelConfig(const double radius,
                          const double dist,
@@ -355,9 +355,9 @@ namespace ground_vehicle_kinematics
                          const std::string& rotation_joint_name,
                          const double rotation_joint_lower,
                          const double rotation_joint_upper,
-                         const std::string& steerable_joint_name,
-                         const double steerable_joint_lower,
-                         const double steerable_joint_upper):
+                         const std::string& steering_joint_name,
+                         const double steering_joint_lower,
+                         const double steering_joint_upper):
       WheelConfig(radius,
                   dist,
                   alpha,
@@ -366,33 +366,33 @@ namespace ground_vehicle_kinematics
                   rotation_joint_name,
                   rotation_joint_lower,
                   rotation_joint_upper),
-      steerable_joint_name_{steerable_joint_name},
-      steerable_joint_lower_{steerable_joint_lower},
-      steerable_joint_upper_{steerable_joint_upper}
+      steering_joint_name_{steering_joint_name},
+      steering_joint_lower_{steering_joint_lower},
+      steering_joint_upper_{steering_joint_upper}
     {}
 
-    /** @return Steerable-joint lower limit. */
-    double steerable_joint_lower() const
+    /** @return Steering-joint lower limit. */
+    double steering_joint_lower() const
     {
-      return steerable_joint_lower_;
+      return steering_joint_lower_;
     }
 
-    /** @return Steerable-joint name. */
-    const std::string& steerable_joint_name() const
+    /** @return Steering-joint name. */
+    const std::string& steering_joint_name() const
     {
-      return steerable_joint_name_;
+      return steering_joint_name_;
     }
 
-    /** @return Steerable-joint upper limit. */
-    double steerable_joint_upper() const
+    /** @return Steering-joint upper limit. */
+    double steering_joint_upper() const
     {
-      return steerable_joint_upper_;
+      return steering_joint_upper_;
     }
 
     private:
-    std::string steerable_joint_name_;
-    double steerable_joint_lower_{0.0};
-    double steerable_joint_upper_{0.0};
+    std::string steering_joint_name_;
+    double steering_joint_lower_{0.0};
+    double steering_joint_upper_{0.0};
   };
 
   //////////////////////////////////////////////////////////////////////////////
@@ -452,16 +452,16 @@ namespace ground_vehicle_kinematics
   };
 
   /** @brief Steering joint model. */
-  class SteerableJoint: public Joint
+  class SteeringJoint: public Joint
   {
     public:
     /**
-     * @brief Build a steerable-joint descriptor.
-     * @param name Steerable-joint name.
+     * @brief Build a steering-joint descriptor.
+     * @param name Steering-joint name.
      * @param limits Steering limits.
      * @throws std::invalid_argument If @p limits lie outside [-2pi, 2pi].
      */
-    SteerableJoint(const std::string& name, const Limits& limits): Joint(name, limits)
+    SteeringJoint(const std::string& name, const Limits& limits): Joint(name, limits)
     {
       validate();
     }
@@ -483,7 +483,7 @@ namespace ground_vehicle_kinematics
     {
       if(limits_.lower() < -max_abs_limit_ || limits_.upper() > max_abs_limit_)
       {
-        throw std::invalid_argument("SteerableJoint.limits must lie within [-2pi, 2pi].");
+        throw std::invalid_argument("SteeringJoint.limits must lie within [-2pi, 2pi].");
       }
     }
   };
@@ -622,22 +622,22 @@ namespace ground_vehicle_kinematics
                    const double beta,
                    const std::string& name,
                    const RotationJoint& rotation_joint,
-                   const SteerableJoint& steerable_joint):
+                   const SteeringJoint& steering_joint):
       Wheel(radius, dist, alpha, beta, name, rotation_joint),
-      steerable_joint_{steerable_joint}
+      steering_joint_{steering_joint}
     {}
 
     /**
      * @brief Get steering-joint descriptor.
      * @return Const reference to steering-joint descriptor.
      */
-    const SteerableJoint& steerable_joint() const
+    const SteeringJoint& steering_joint() const
     {
-      return steerable_joint_;
+      return steering_joint_;
     }
 
     private:
-    SteerableJoint steerable_joint_;  ///< Steering joint descriptor.
+    SteeringJoint steering_joint_;  ///< Steering joint descriptor.
   };
 
   //////////////////////////////////////////////////////////////////////////////
@@ -744,22 +744,22 @@ namespace ground_vehicle_kinematics
   };
 
   /** @brief Steering-joint state specialization. */
-  class SteerableJointState: public JointState
+  class SteeringJointState: public JointState
   {
     public:
-    /** @brief Build an empty steerable-joint state. */
-    SteerableJointState() = default;
+    /** @brief Build an empty steering-joint state. */
+    SteeringJointState() = default;
 
     /**
-     * @brief Build a steerable-joint state.
-     * @param joint_name Steerable-joint name.
+     * @brief Build a steering-joint state.
+     * @param joint_name Steering-joint name.
      * @param angle Joint angle (rad).
      * @param ang_vel Joint angular velocity (rad/s).
      */
-    SteerableJointState(const std::string& joint_name,
-                        const double angle,
-                        const double ang_vel,
-                        const int64_t timestamp_ns):
+    SteeringJointState(const std::string& joint_name,
+                       const double angle,
+                       const double ang_vel,
+                       const int64_t timestamp_ns):
       JointState(joint_name, angle, ang_vel, timestamp_ns)
     {}
   };
@@ -833,32 +833,32 @@ namespace ground_vehicle_kinematics
      * @brief Build steerable-wheel state from wheel and steer states.
      * @param wheel_name Wheel name.
      * @param rotation_joint_state Rotation-joint state.
-     * @param steerable_joint_state Steering-joint state.
+     * @param steering_joint_state Steering-joint state.
      */
     SteerableWheelState(const std::string& wheel_name,
                         const RotationJointState& rotation_joint_state,
-                        const SteerableJointState& steerable_joint_state):
+                        const SteeringJointState& steering_joint_state):
       WheelState(wheel_name, rotation_joint_state),
-      steerable_joint_state_{steerable_joint_state}
+      steering_joint_state_{steering_joint_state}
     {}
 
     bool matches(const SteerableWheel& wheel) const
     {
-      return WheelState::matches(wheel) && steerable_joint_state_.joint_name() == wheel.steerable_joint().name() &&
-             wheel.steerable_joint().limits().contains(steerable_joint_state_.angle());
+      return WheelState::matches(wheel) && steering_joint_state_.joint_name() == wheel.steering_joint().name() &&
+             wheel.steering_joint().limits().contains(steering_joint_state_.angle());
     }
 
     /**
      * @brief Get steering-joint state.
      * @return Const reference to steering-joint state.
      */
-    const SteerableJointState& steerable_joint_state() const
+    const SteeringJointState& steering_joint_state() const
     {
-      return steerable_joint_state_;
+      return steering_joint_state_;
     }
 
     private:
-    SteerableJointState steerable_joint_state_;  ///< Steering-joint state.
+    SteeringJointState steering_joint_state_;  ///< Steering-joint state.
   };
 
   //////////////////////////////////////////////////////////////////////////////
@@ -945,18 +945,18 @@ namespace ground_vehicle_kinematics
   };
 
   /** @brief Steering-joint command specialization. */
-  class SteerableJointCommand: public JointCommand
+  class SteeringJointCommand: public JointCommand
   {
     public:
-    /** @brief Build an empty steerable-joint command. */
-    SteerableJointCommand() = default;
+    /** @brief Build an empty steering-joint command. */
+    SteeringJointCommand() = default;
 
     /**
-     * @brief Build a steerable-joint command.
+     * @brief Build a steering-joint command.
      * @param joint_name Steering-joint name.
      * @param value Steering command value (rad).
      */
-    SteerableJointCommand(const std::string& joint_name, const double value, const int64_t timestamp_ns):
+    SteeringJointCommand(const std::string& joint_name, const double value, const int64_t timestamp_ns):
       JointCommand(joint_name, value, timestamp_ns)
     {}
   };
@@ -1050,9 +1050,9 @@ namespace ground_vehicle_kinematics
 
       if(abs_wheel_vel < epsilon)
       {
-        steerable_joint_command_ = SteerableJointCommand{wheel.steerable_joint().name(),
-                                                         wheel_state.steerable_joint_state().angle(),
-                                                         timestamp_ns};
+        steering_joint_command_ = SteeringJointCommand{wheel.steering_joint().name(),
+                                                       wheel_state.steering_joint_state().angle(),
+                                                       timestamp_ns};
 
         return;
       };
@@ -1068,28 +1068,28 @@ namespace ground_vehicle_kinematics
                                                                 wheel.rotation_joint().limits().upper()),
                                                      timestamp_ns};
 
-      steerable_joint_command_ = SteerableJointCommand{wheel.steerable_joint().name(),
-                                                       selected_solution.steering_angle,
-                                                       timestamp_ns};
+      steering_joint_command_ = SteeringJointCommand{wheel.steering_joint().name(),
+                                                     selected_solution.steering_angle,
+                                                     timestamp_ns};
     }
 
     bool matches(const SteerableWheel& wheel) const
     {
-      return WheelCommand::matches(wheel) && steerable_joint_command_.joint_name() == wheel.steerable_joint().name() &&
-             wheel.steerable_joint().limits().contains(steerable_joint_command_.value());
+      return WheelCommand::matches(wheel) && steering_joint_command_.joint_name() == wheel.steering_joint().name() &&
+             wheel.steering_joint().limits().contains(steering_joint_command_.value());
     }
 
     /**
      * @brief Get steering-joint command.
      * @return Const reference to steering-joint command.
      */
-    const SteerableJointCommand& steerable_joint_command() const
+    const SteeringJointCommand& steering_joint_command() const
     {
-      return steerable_joint_command_;
+      return steering_joint_command_;
     }
 
     private:
-    SteerableJointCommand steerable_joint_command_;  ///< Steering-joint command.
+    SteeringJointCommand steering_joint_command_;  ///< Steering-joint command.
 
     class CandidateSolution
     {
@@ -1134,7 +1134,7 @@ namespace ground_vehicle_kinematics
     static double steering_distance_to_current(const CandidateSolution& candidate_solution,
                                                const SteerableWheelState& wheel_state)
     {
-      return std::fabs(candidate_solution.steering_angle - wheel_state.steerable_joint_state().angle());
+      return std::fabs(candidate_solution.steering_angle - wheel_state.steering_joint_state().angle());
     }
 
     /**
@@ -1164,7 +1164,7 @@ namespace ground_vehicle_kinematics
 
       for(std::size_t i{0}; i < candidate_solutions.size(); ++i)
       {
-        if(wheel.steerable_joint().limits().contains(candidate_solutions[i].steering_angle))
+        if(wheel.steering_joint().limits().contains(candidate_solutions[i].steering_angle))
         {
           // Keep candidates that already satisfy the steering limits unchanged.
           non_clamped_solutions[non_clamped_count] = candidate_solutions[i];
@@ -1177,8 +1177,8 @@ namespace ground_vehicle_kinematics
           // wheel angular velocity as-is. The selection step will decide later whether this clamped candidate is the
           // best fallback.
           clamped_solutions[clamped_count] = CandidateSolution{std::clamp(candidate_solutions[i].steering_angle,
-                                                                          wheel.steerable_joint().limits().lower(),
-                                                                          wheel.steerable_joint().limits().upper()),
+                                                                          wheel.steering_joint().limits().lower(),
+                                                                          wheel.steering_joint().limits().upper()),
                                                                candidate_solutions[i].wheel_ang_vel};
           clamped_indices[clamped_count]   = i;
           ++clamped_count;

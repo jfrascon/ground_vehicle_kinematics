@@ -33,9 +33,9 @@ namespace ground_vehicle_kinematics
       this->declare_parameter<double>(wheel_path + ".alpha");
       this->declare_parameter<double>(wheel_path + ".beta");
       this->declare_parameter<std::string>(wheel_path + ".name");
-      this->declare_parameter<std::string>(wheel_path + ".steerable_joint.name");
-      this->declare_parameter<double>(wheel_path + ".steerable_joint.limits.lower");
-      this->declare_parameter<double>(wheel_path + ".steerable_joint.limits.upper");
+      this->declare_parameter<std::string>(wheel_path + ".steering_joint.name");
+      this->declare_parameter<double>(wheel_path + ".steering_joint.limits.lower");
+      this->declare_parameter<double>(wheel_path + ".steering_joint.limits.upper");
       this->declare_parameter<std::string>(wheel_path + ".rotation_joint.name");
       this->declare_parameter<double>(wheel_path + ".rotation_joint.limits.lower");
       this->declare_parameter<double>(wheel_path + ".rotation_joint.limits.upper");
@@ -87,9 +87,9 @@ namespace ground_vehicle_kinematics
         this->get_parameter(wheel_path + ".rotation_joint.name").as_string(),
         this->get_parameter(wheel_path + ".rotation_joint.limits.lower").get_value<double>(),
         this->get_parameter(wheel_path + ".rotation_joint.limits.upper").get_value<double>(),
-        this->get_parameter(wheel_path + ".steerable_joint.name").as_string(),
-        this->get_parameter(wheel_path + ".steerable_joint.limits.lower").get_value<double>(),
-        this->get_parameter(wheel_path + ".steerable_joint.limits.upper").get_value<double>()};
+        this->get_parameter(wheel_path + ".steering_joint.name").as_string(),
+        this->get_parameter(wheel_path + ".steering_joint.limits.lower").get_value<double>(),
+        this->get_parameter(wheel_path + ".steering_joint.limits.upper").get_value<double>()};
 
       RCLCPP_INFO(get_logger(), "Processed configuration for steerable wheel '%s'", wheel_cfg.wheel_name().c_str());
 
@@ -143,25 +143,24 @@ namespace ground_vehicle_kinematics
       for(std::size_t wheel_index{0}; wheel_index < wheel_paths_.size(); ++wheel_index)
       {
         const auto& wheel{solver_->wheel(wheel_index)};
-        const auto& steerable_joint_name{wheel.steerable_joint().name()};
+        const auto& steering_joint_name{wheel.steering_joint().name()};
         const auto& rotation_joint_name{wheel.rotation_joint().name()};
 
-        const auto steerable_joint_it{joint_name_to_index.find(steerable_joint_name)};
+        const auto steering_joint_it{joint_name_to_index.find(steering_joint_name)};
         const auto rotation_joint_it{joint_name_to_index.find(rotation_joint_name)};
 
-        if(steerable_joint_it == joint_name_to_index.end())
+        if(steering_joint_it == joint_name_to_index.end())
         {
-          throw std::invalid_argument("Steerable joint '" + steerable_joint_name +
-                                      "' not found in JointState message.");
+          throw std::invalid_argument("Steering joint '" + steering_joint_name + "' not found in JointState message.");
         }
 
-        const auto index_steerable_joint{steerable_joint_it->second};
+        const auto index_steering_joint{steering_joint_it->second};
 
         // If the index is greater than the size of the position vector, it means that the message
         // does not contain position data for this joint, which is required for direct kinematics.
-        if(index_steerable_joint >= msg->position.size())
+        if(index_steering_joint >= msg->position.size())
         {
-          throw std::invalid_argument("Steerable joint '" + steerable_joint_name +
+          throw std::invalid_argument("Steering joint '" + steering_joint_name +
                                       "' has no position data in JointState message.");
         }
 
@@ -186,11 +185,10 @@ namespace ground_vehicle_kinematics
                              (index_rotation_joint < msg->position.size()) ? msg->position[index_rotation_joint] : 0.0,
                              msg->velocity[index_rotation_joint],
                              t_now_ns},
-          SteerableJointState{steerable_joint_name,
-                              msg->position[index_steerable_joint],
-                              (index_steerable_joint < msg->velocity.size()) ? msg->velocity[index_steerable_joint] :
-                                                                               0.0,
-                              t_now_ns}};
+          SteeringJointState{steering_joint_name,
+                             msg->position[index_steering_joint],
+                             (index_steering_joint < msg->velocity.size()) ? msg->velocity[index_steering_joint] : 0.0,
+                             t_now_ns}};
       }
     }
     catch(const std::exception& ex)
@@ -259,7 +257,7 @@ namespace ground_vehicle_kinematics
       for(std::size_t i{0}; i < wheel_cmds.size(); ++i)
       {
         const auto& wheel_cmd{wheel_cmds[i].get()};
-        joint_cmds.position[i] = wheel_cmd.steerable_joint_command().value();
+        joint_cmds.position[i] = wheel_cmd.steering_joint_command().value();
         joint_cmds.velocity[i] = wheel_cmd.rotation_joint_command().value();
       }
 

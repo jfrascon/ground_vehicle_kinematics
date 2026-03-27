@@ -85,10 +85,7 @@ namespace ground_vehicle_kinematics
                              0.0,
                              std::hypot(wheel_vel_x, wheel_vel_y) / wheel_cfg.radius(),
                              timestamp_ns},
-          SteerableJointState{wheel_cfg.steerable_joint_name(),
-                              std::atan2(wheel_vel_y, wheel_vel_x),
-                              0.0,
-                              timestamp_ns}};
+          SteeringJointState{wheel_cfg.steering_joint_name(), std::atan2(wheel_vel_y, wheel_vel_x), 0.0, timestamp_ns}};
       }
 
       return wheel_states;
@@ -153,10 +150,10 @@ namespace ground_vehicle_kinematics
                                                                0.0,
                                                                wheel_cmds[i].get().rotation_joint_command().value(),
                                                                999U},
-                                            SteerableJointState{wheel_cfg.steerable_joint_name(),
-                                                                wheel_cmds[i].get().steerable_joint_command().value(),
-                                                                0.0,
-                                                                999U}};
+                                            SteeringJointState{wheel_cfg.steering_joint_name(),
+                                                               wheel_cmds[i].get().steering_joint_command().value(),
+                                                               0.0,
+                                                               999U}};
     }
 
     const Twist twist{solver.get_twist(wheel_states)};

@@ -47,7 +47,7 @@ namespace ground_vehicle_kinematics
     {
       const auto& wheel{wheel_descriptors_[i].wheel()};
       const auto& wheel_state{wheel_descriptors_[i].wheel_state()};
-      const double theta{wheel_state.steerable_joint_state().angle()};
+      const double theta{wheel_state.steering_joint_state().angle()};
       const double ang_vel{wheel_state.rotation_joint_state().ang_vel()};
 
       if(!std::isfinite(theta) || !std::isfinite(ang_vel))
@@ -94,8 +94,8 @@ namespace ground_vehicle_kinematics
                           wheel_cfg.wheel_name(),
                           RotationJoint{wheel_cfg.rotation_joint_name(),
                                         Limits{wheel_cfg.rotation_joint_lower(), wheel_cfg.rotation_joint_upper()}},
-                          SteerableJoint{wheel_cfg.steerable_joint_name(),
-                                         Limits{wheel_cfg.steerable_joint_lower(), wheel_cfg.steerable_joint_upper()}}};
+                          SteeringJoint{wheel_cfg.steering_joint_name(),
+                                        Limits{wheel_cfg.steering_joint_lower(), wheel_cfg.steering_joint_upper()}}};
   }
 
   std::array<SteerableWheelDescriptor, 3> ThreeSwerveKinematicsSolver::build_wheel_descriptors(
@@ -193,7 +193,7 @@ namespace ground_vehicle_kinematics
     {
       names.insert(wheel.name());
       names.insert(wheel.rotation_joint().name());
-      names.insert(wheel.steerable_joint().name());
+      names.insert(wheel.steering_joint().name());
     }
 
     if(names.size() != 9U)
