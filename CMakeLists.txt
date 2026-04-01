@@ -15,7 +15,8 @@ find_package(Eigen3 3.3 REQUIRED)
 find_package(angles REQUIRED)
 
 add_library(${PROJECT_NAME}_solvers src/solvers/svd_least_squares_solver.cpp
-                                    src/solvers/three_swerve_kinematics.cpp)
+                                    src/solvers/three_swerve_kinematics.cpp
+                                    src/solvers/four_swerve_kinematics.cpp)
 target_link_libraries(${PROJECT_NAME}_solvers Eigen3::Eigen)
 target_include_directories(
   ${PROJECT_NAME}_solvers
@@ -29,12 +30,19 @@ ament_target_dependencies(three_swerve_kinematics_node rclcpp sensor_msgs
                           geometry_msgs angles actuator_msgs)
 target_include_directories(three_swerve_kinematics_node PRIVATE include)
 
+add_executable(four_swerve_kinematics_node src/four_swerve_kinematics_node.cpp
+                                           src/four_swerve_kinematics_ros.cpp)
+target_link_libraries(four_swerve_kinematics_node ${PROJECT_NAME}_solvers)
+ament_target_dependencies(four_swerve_kinematics_node rclcpp sensor_msgs
+                          geometry_msgs angles actuator_msgs)
+target_include_directories(four_swerve_kinematics_node PRIVATE include)
+
 install(DIRECTORY include/ DESTINATION include/)
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
 install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config)
 
 install(
-  TARGETS ${PROJECT_NAME}_solvers three_swerve_kinematics_node
+  TARGETS ${PROJECT_NAME}_solvers three_swerve_kinematics_node four_swerve_kinematics_node
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -55,6 +63,12 @@ if(BUILD_TESTING)
   target_link_libraries(test_three_swerve_kinematics ${PROJECT_NAME}_solvers
                         Eigen3::Eigen)
   target_include_directories(test_three_swerve_kinematics PRIVATE include)
+
+  ament_add_gtest(test_four_swerve_kinematics
+                  test/test_four_swerve_kinematics.cpp)
+  target_link_libraries(test_four_swerve_kinematics ${PROJECT_NAME}_solvers
+                        Eigen3::Eigen)
+  target_include_directories(test_four_swerve_kinematics PRIVATE include)
 
   # Turn on as needed: ament_lint_auto_find_test_dependencies()
 endif()

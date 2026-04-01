@@ -1,4 +1,4 @@
-# ground_vehicle_kinematics
+# [ground_vehicle_kinematics](https://github.com/jfrascon/ground_vehicle_kinematics)
 
 This package provides utilities and ROS 2 nodes to compute forward and inverse kinematics for ground vehicles. It is intended as a generic foundation for different wheel-based vehicle models, and currently includes a documented implementation for a three-swerve platform.
 

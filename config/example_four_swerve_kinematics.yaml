@@ -1,6 +1,6 @@
 # Since this parameter file uses variable expansion, it is meant to be use along with an instruction
 # ParameterFile(<params_file>, allow_substs=True) in a launch file
-/**/three_swerve_kinematics:
+/**/four_swerve_kinematics:
   ros__parameters:
     # use_sim_time IS automatically handled, no need to specify here.
 
@@ -31,20 +31,21 @@
     # - beta: wheel orientation angle in radians
 
     steerable_wheels:
-      # The steetable_wheels presented here define a Y-inverted geometry:
-      # - steerable_wheel_0: wheel on the robot X axis.
-      # - steerable_wheel_1: left wheel.
-      # - steerable_wheel_2: right wheel.
+      # The steerable_wheels presented here define the rbvogui geometry:
+      # - steerable_wheel_0: front-left wheel
+      # - steerable_wheel_1: front-right wheel
+      # - steerable_wheel_2: rear-left wheel
+      # - steerable_wheel_3: rear-right wheel
 
       steerable_wheel_0:
-        radius: 0.127
-        dist: 0.50
-        alpha: 3.141592653589793 # rad = pi
-        beta: -1.5707963267948966 # rad = pi/2 - alpha_0
+        radius: 0.117494
+        dist: 0.4366337137693332
+        alpha: 0.5683101050173379 # rad
+        beta: 1.0024862217775588 # rad = pi/2 - alpha_0
         name: "$(var robot_prefix)steerable_wheel_0"
         steering_joint:
           name: "$(var robot_prefix)steerable_wheel_0_steering_joint"
-          # Note: If you want the wheel to be able to reach +-pi rad angle (+-180 degress), set limits to +-3.1416.
+          # Note: If you want the wheel to be able to reach +-pi rad angle (+-180 degrees), set limits to +-3.1416.
           # pi = 3.141592654.... < 3.1416
           limits: { lower: -3.1416, upper: 3.1416 } # rad
         rotation_joint:
@@ -52,14 +53,14 @@
           limits: { lower: -100.0, upper: 100.0 } # rad/s
 
       steerable_wheel_1:
-        radius: 0.127
-        dist: 0.50
-        alpha: 2.6878070480712677 # rad = 154 deg
-        beta: -1.117010721276371 # rad = pi/2 - alpha_1
+        radius: 0.117494
+        dist: 0.4366337137693332
+        alpha: -0.5683101050173379 # rad
+        beta: 2.1391064318122344 # rad = pi/2 - alpha_1
         name: "$(var robot_prefix)steerable_wheel_1"
         steering_joint:
           name: "$(var robot_prefix)steerable_wheel_1_steering_joint"
-          # Note: If you want the wheel to be able to reach +-pi rad angle (+-180 degress), set limits to +-3.1416.
+          # Note: If you want the wheel to be able to reach +-pi rad angle (+-180 degrees), set limits to +-3.1416.
           # pi = 3.141592654.... < 3.1416
           limits: { lower: -3.1416, upper: 3.1416 } # rad
         rotation_joint:
@@ -67,16 +68,31 @@
           limits: { lower: -100.0, upper: 100.0 } # rad/s
 
       steerable_wheel_2:
-        radius: 0.127
-        dist: 0.50
-        alpha: -2.6878070480712677 # rad = -154 deg
-        beta: 4.258603374866164 # rad = pi/2 - alpha_2 = pi/2 - (-alpha_1) = pi/2 + alpha_1
+        radius: 0.117494
+        dist: 0.4366337137693332
+        alpha: 2.5732825485724553 # rad
+        beta: -1.0024862217775588 # rad = pi/2 - alpha_2
         name: "$(var robot_prefix)steerable_wheel_2"
         steering_joint:
           name: "$(var robot_prefix)steerable_wheel_2_steering_joint"
-          # Note: If you want the wheel to be able to reach +-pi rad angle (+-180 degress), set limits to +-3.1416.
+          # Note: If you want the wheel to be able to reach +-pi rad angle (+-180 degrees), set limits to +-3.1416.
           # pi = 3.141592654.... < 3.1416
           limits: { lower: -3.1416, upper: 3.1416 } # rad
         rotation_joint:
           name: "$(var robot_prefix)steerable_wheel_2_rotation_joint"
+          limits: { lower: -100.0, upper: 100.0 } # rad/s
+
+      steerable_wheel_3:
+        radius: 0.117494
+        dist: 0.4366337137693332
+        alpha: -2.5732825485724553 # rad
+        beta: 4.144078875367352 # rad = pi/2 - alpha_3
+        name: "$(var robot_prefix)steerable_wheel_3"
+        steering_joint:
+          name: "$(var robot_prefix)steerable_wheel_3_steering_joint"
+          # Note: If you want the wheel to be able to reach +-pi rad angle (+-180 degrees), set limits to +-3.1416.
+          # pi = 3.141592654.... < 3.1416
+          limits: { lower: -3.1416, upper: 3.1416 } # rad
+        rotation_joint:
+          name: "$(var robot_prefix)steerable_wheel_3_rotation_joint"
           limits: { lower: -100.0, upper: 100.0 } # rad/s
