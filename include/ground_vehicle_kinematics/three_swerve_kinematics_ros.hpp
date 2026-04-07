@@ -50,16 +50,16 @@ namespace ground_vehicle_kinematics
 
     private:
     /** @brief Input topic for wheel/joint states. */
-    static constexpr const char* input_joint_states_topic_{"mobile_base_kinematics/joint_states"};
+    static constexpr const char* input_joint_states_topic_{"joint_states"};
 
     /** @brief Output topic for solved chassis twist. */
-    static constexpr const char* output_twist_topic_{"mobile_base_kinematics/twist"};
+    static constexpr const char* output_twist_topic_{"twist"};
 
     /** @brief Input topic for twist commands. */
-    static constexpr const char* input_twist_topic_{"mobile_base_kinematics/twist_cmd"};
+    static constexpr const char* input_twist_topic_{"cmd_vel"};
 
     /** @brief Output topic for solved wheel commands. */
-    static constexpr const char* output_joint_commands_topic_{"mobile_base_kinematics/joint_commands"};
+    static constexpr const char* output_joint_commands_topic_{"joint_commands/base"};
 
     /**
      * @brief YAML base paths of the three wheel entries, in the fixed wheel order used by this node.
