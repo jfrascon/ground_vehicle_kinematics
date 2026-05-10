@@ -15,6 +15,8 @@ namespace ground_vehicle_kinematics
 {
   ThreeSwerveKinematicsSolverRos::ThreeSwerveKinematicsSolverRos(const rclcpp::NodeOptions& options):
     rclcpp::Node("three_swerve_kinematics_solver", options),
+    constructor_logger_(this->get_logger().get_child("constructor")),
+    create_solver_config_logger_(this->get_logger().get_child("create_solver_config")),
     twist_cb_logger_(this->get_logger().get_child("twist_cb")),
     joint_state_cb_logger_(this->get_logger().get_child("joint_state_cb"))
   {
@@ -53,7 +55,7 @@ namespace ground_vehicle_kinematics
     }
     else
     {
-      RCLCPP_WARN(get_logger(),
+      RCLCPP_WARN(constructor_logger_,
                   "Initial wheel states reception period is non-positive (%.2f). No period used",
                   initial_wheel_states_reception_period);
 
@@ -65,7 +67,7 @@ namespace ground_vehicle_kinematics
     // Create pubs/subs after the configuration has been validated.
     create_subs_pubs();
 
-    RCLCPP_INFO(this->get_logger(), "ThreeSwerveKinematicsSolverRos node initialized.");
+    RCLCPP_INFO(constructor_logger_, "ThreeSwerveKinematicsSolverRos node initialized.");
   }
 
   ThreeSwerveKinematicsSolverConfig ThreeSwerveKinematicsSolverRos::create_solver_config() const
@@ -91,7 +93,9 @@ namespace ground_vehicle_kinematics
         this->get_parameter(wheel_path + ".steering_joint.limits.lower").get_value<double>(),
         this->get_parameter(wheel_path + ".steering_joint.limits.upper").get_value<double>()};
 
-      RCLCPP_INFO(get_logger(), "Processed configuration for steerable wheel '%s'", wheel_cfg.wheel_name().c_str());
+      RCLCPP_INFO(create_solver_config_logger_,
+                  "Processed configuration for steerable wheel '%s'",
+                  wheel_cfg.wheel_name().c_str());
 
       return wheel_cfg;
     };

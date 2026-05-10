@@ -92,6 +92,12 @@ namespace ground_vehicle_kinematics
     /** @brief True once the first valid JointState message has been received. */
     bool received_initial_joint_states_{false};
 
+    /** @brief Logger for the node construction phase. */
+    rclcpp::Logger constructor_logger_;
+
+    /** @brief Logger for solver configuration building. */
+    rclcpp::Logger create_solver_config_logger_;
+
     /** @brief Logger for twist callback. */
     rclcpp::Logger twist_cb_logger_;
 
