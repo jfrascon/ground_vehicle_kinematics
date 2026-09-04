@@ -69,6 +69,7 @@ z=(A^\top A)^{-1}A^\top b\quad\text{o, numéricamente, resolviendo }A z \approx 
 ```python
 import numpy as np
 
+
 def wheels_to_chassis_ls(alphas, thetas, positions, R):
     """
     alphas, thetas: iterables de longitud N (rad/s y rad)
@@ -87,13 +88,13 @@ def wheels_to_chassis_ls(alphas, thetas, positions, R):
     viy = s * np.sin(thetas)
 
     # 2) Construye A y b
-    A = np.zeros((2*N, 3), float)
-    b = np.zeros((2*N,), float)
+    A = np.zeros((2 * N, 3), float)
+    b = np.zeros((2 * N,), float)
     for i, (x, y) in enumerate(pos):
-        A[2*i  ] = [1.0, 0.0, -y]
-        A[2*i+1] = [0.0, 1.0,  x]
-        b[2*i  ] = vix[i]
-        b[2*i+1] = viy[i]
+        A[2 * i] = [1.0, 0.0, -y]
+        A[2 * i + 1] = [0.0, 1.0, x]
+        b[2 * i] = vix[i]
+        b[2 * i + 1] = viy[i]
 
     # 3) Mínimos cuadrados
     z, *_ = np.linalg.lstsq(A, b, rcond=None)

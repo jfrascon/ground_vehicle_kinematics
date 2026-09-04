@@ -25,8 +25,8 @@ namespace ground_vehicle_kinematics
     this->declare_parameter<double>("direct_solver.tikhonov_lambda", 1e-4);
     this->declare_parameter<double>("initial_wheel_states_reception_period", 10.0);
 
-    // The three wheel entries always follow the fixed order: wheel 0 on the X axis, wheel 1 on the left,
-    // and wheel 2 on the right.
+    // The three wheel entries use a fixed order.
+    // Wheel 0 is on the X axis, wheel 1 is on the left, and wheel 2 is on the right.
     for(std::size_t i{0}; i < wheel_paths_.size(); ++i)
     {
       const std::string& wheel_path{wheel_paths_[i]};
@@ -43,8 +43,8 @@ namespace ground_vehicle_kinematics
       this->declare_parameter<double>(wheel_path + ".rotation_joint.limits.upper");
     }
 
-    // Inverse kinematics needs the current wheel state to choose the smoothest solution. This waiting time gives the
-    // node a chance to receive the first JointState before it starts accepting twist commands.
+    // Inverse kinematics needs the current wheel state to choose the smoothest solution.
+    // This period lets the node receive its first JointState before accepting twist commands.
     const auto initial_wheel_states_reception_period{
       this->get_parameter("initial_wheel_states_reception_period").get_value<double>()};
 
@@ -80,18 +80,18 @@ namespace ground_vehicle_kinematics
 
       const auto& wheel_path{wheel_paths_[wheel_index]};
 
-      const SteerableWheelConfig wheel_cfg{
-        this->get_parameter(wheel_path + ".radius").get_value<double>(),
-        this->get_parameter(wheel_path + ".dist").get_value<double>(),
-        this->get_parameter(wheel_path + ".alpha").get_value<double>(),
-        this->get_parameter(wheel_path + ".beta").get_value<double>(),
-        this->get_parameter(wheel_path + ".name").as_string(),
-        this->get_parameter(wheel_path + ".rotation_joint.name").as_string(),
-        this->get_parameter(wheel_path + ".rotation_joint.limits.lower").get_value<double>(),
-        this->get_parameter(wheel_path + ".rotation_joint.limits.upper").get_value<double>(),
-        this->get_parameter(wheel_path + ".steering_joint.name").as_string(),
-        this->get_parameter(wheel_path + ".steering_joint.limits.lower").get_value<double>(),
-        this->get_parameter(wheel_path + ".steering_joint.limits.upper").get_value<double>()};
+      const SteerableWheelConfig
+        wheel_cfg{this->get_parameter(wheel_path + ".radius").get_value<double>(),
+                  this->get_parameter(wheel_path + ".dist").get_value<double>(),
+                  this->get_parameter(wheel_path + ".alpha").get_value<double>(),
+                  this->get_parameter(wheel_path + ".beta").get_value<double>(),
+                  this->get_parameter(wheel_path + ".name").as_string(),
+                  this->get_parameter(wheel_path + ".rotation_joint.name").as_string(),
+                  this->get_parameter(wheel_path + ".rotation_joint.limits.lower").get_value<double>(),
+                  this->get_parameter(wheel_path + ".rotation_joint.limits.upper").get_value<double>(),
+                  this->get_parameter(wheel_path + ".steering_joint.name").as_string(),
+                  this->get_parameter(wheel_path + ".steering_joint.limits.lower").get_value<double>(),
+                  this->get_parameter(wheel_path + ".steering_joint.limits.upper").get_value<double>()};
 
       RCLCPP_INFO(create_solver_config_logger_,
                   "Processed configuration for steerable wheel '%s'",
@@ -102,26 +102,28 @@ namespace ground_vehicle_kinematics
 
     return ThreeSwerveKinematicsSolverConfig{
       {create_wheel_config(0), create_wheel_config(1), create_wheel_config(2)},
-      SvdLeastSquaresSolverConfig{
-        this->get_parameter("direct_solver.relative_singular_value_threshold").get_value<double>(),
-        this->get_parameter("direct_solver.tikhonov_lambda").get_value<double>()}};
+      SvdLeastSquaresSolverConfig{this->get_parameter("direct_solver.relative_singular_value_threshold")
+                                    .get_value<double>(),
+                                  this->get_parameter("direct_solver.tikhonov_lambda").get_value<double>()}};
   }
 
   void ThreeSwerveKinematicsSolverRos::create_subs_pubs()
   {
     // JointState drives direct kinematics and Twist is the output.
-    joint_states_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
-      input_joint_states_topic_,
-      rclcpp::SensorDataQoS(),
-      std::bind(&ThreeSwerveKinematicsSolverRos::joint_state_cb, this, std::placeholders::_1));
+    joint_states_sub_ = this->create_subscription<
+      sensor_msgs::msg::JointState>(input_joint_states_topic_,
+                                    rclcpp::SensorDataQoS(),
+                                    std::bind(&ThreeSwerveKinematicsSolverRos::joint_state_cb,
+                                              this,
+                                              std::placeholders::_1));
 
     twist_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(output_twist_topic_, 10);
 
     // Twist drives inverse kinematics and Actuators is the output.
-    twist_cmd_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
-      input_twist_topic_,
-      rclcpp::SystemDefaultsQoS(),
-      std::bind(&ThreeSwerveKinematicsSolverRos::twist_cb, this, std::placeholders::_1));
+    twist_cmd_sub_ = this->create_subscription<
+      geometry_msgs::msg::Twist>(input_twist_topic_,
+                                 rclcpp::SystemDefaultsQoS(),
+                                 std::bind(&ThreeSwerveKinematicsSolverRos::twist_cb, this, std::placeholders::_1));
 
     joint_cmd_pub_ = this->create_publisher<actuator_msgs::msg::Actuators>(output_joint_commands_topic_, 10);
   }
@@ -183,16 +185,21 @@ namespace ground_vehicle_kinematics
                                       "' has no velocity data in JointState message.");
         }
 
-        wheel_states[wheel_index] = SteerableWheelState{
-          wheel.name(),
-          RotationJointState{rotation_joint_name,
-                             (index_rotation_joint < msg->position.size()) ? msg->position[index_rotation_joint] : 0.0,
-                             msg->velocity[index_rotation_joint],
-                             t_now_ns},
-          SteeringJointState{steering_joint_name,
-                             msg->position[index_steering_joint],
-                             (index_steering_joint < msg->velocity.size()) ? msg->velocity[index_steering_joint] : 0.0,
-                             t_now_ns}};
+        wheel_states[wheel_index] = SteerableWheelState{wheel.name(),
+                                                        RotationJointState{rotation_joint_name,
+                                                                           (index_rotation_joint <
+                                                                            msg->position.size()) ?
+                                                                             msg->position[index_rotation_joint] :
+                                                                             0.0,
+                                                                           msg->velocity[index_rotation_joint],
+                                                                           t_now_ns},
+                                                        SteeringJointState{steering_joint_name,
+                                                                           msg->position[index_steering_joint],
+                                                                           (index_steering_joint <
+                                                                            msg->velocity.size()) ?
+                                                                             msg->velocity[index_steering_joint] :
+                                                                             0.0,
+                                                                           t_now_ns}};
       }
     }
     catch(const std::exception& ex)
@@ -212,9 +219,9 @@ namespace ground_vehicle_kinematics
       }
 
       geometry_msgs::msg::Twist twist_msg;
-      twist_msg.linear.x  = twist.vx();
-      twist_msg.linear.y  = twist.vy();
-      twist_msg.linear.z  = twist.vz();
+      twist_msg.linear.x = twist.vx();
+      twist_msg.linear.y = twist.vy();
+      twist_msg.linear.z = twist.vz();
       twist_msg.angular.x = twist.wx();
       twist_msg.angular.y = twist.wy();
       twist_msg.angular.z = twist.wz();
@@ -232,8 +239,8 @@ namespace ground_vehicle_kinematics
   {
     const auto t_now = this->now();
 
-    // Wait at startup until the first JointState arrives, or until the waiting period expires. This gives inverse
-    // kinematics a current wheel state before it starts selecting between equivalent solutions.
+    // Wait until the first JointState arrives or until the startup period expires.
+    // This gives inverse kinematics a current state for selecting equivalent solutions.
     if(t_now < t_start_pub_commands_ && !received_initial_joint_states_)
     {
       RCLCPP_DEBUG(twist_cb_logger_,
@@ -252,7 +259,7 @@ namespace ground_vehicle_kinematics
       actuator_msgs::msg::Actuators joint_cmds;
 
       joint_cmds.header.frame_id = "";
-      joint_cmds.header.stamp    = t_now;
+      joint_cmds.header.stamp = t_now;
       joint_cmds.position.resize(3);
       joint_cmds.normalized.resize(3);  // Not used here.
       joint_cmds.velocity.resize(3);

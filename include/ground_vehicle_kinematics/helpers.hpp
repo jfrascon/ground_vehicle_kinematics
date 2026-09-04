@@ -67,7 +67,7 @@ namespace ground_vehicle_kinematics
     {
       ensure_finite(value, field_name);
 
-      // Use an equivalent expression instead of "<=" to avoid the "=" part in a floating-point comparison.
+      // Avoid "<=" so the floating-point comparison does not include an exact equality branch.
       if(!(value > 0.0))
       {
         throw std::invalid_argument(std::string(field_name) + " must be a finite positive value.");

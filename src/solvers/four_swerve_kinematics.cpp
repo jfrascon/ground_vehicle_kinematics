@@ -28,9 +28,9 @@ namespace ground_vehicle_kinematics
     {
       const auto& pos2d{wheel_descriptors_[i].wheel().pos2d()};
 
-      A((2 * i), 0)     = 1.0;
-      A((2 * i), 1)     = 0.0;
-      A((2 * i), 2)     = -pos2d.y();
+      A((2 * i), 0) = 1.0;
+      A((2 * i), 1) = 0.0;
+      A((2 * i), 2) = -pos2d.y();
       A((2 * i) + 1, 0) = 0.0;
       A((2 * i) + 1, 1) = 1.0;
       A((2 * i) + 1, 2) = pos2d.x();
@@ -56,7 +56,7 @@ namespace ground_vehicle_kinematics
       }
 
       const double wheel_speed{wheel.radius() * ang_vel};
-      b((2 * i), 0)     = wheel_speed * std::cos(theta);
+      b((2 * i), 0) = wheel_speed * std::cos(theta);
       b((2 * i) + 1, 0) = wheel_speed * std::sin(theta);
     }
 

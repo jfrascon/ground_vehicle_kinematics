@@ -1,76 +1,80 @@
-from launch import LaunchContext, LaunchDescription, LaunchDescriptionEntity  # noqa
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node
-from launch_ros.parameter_descriptions import ParameterFile
 from ament_index_python.packages import get_package_share_directory
-
+from launch import LaunchContext, LaunchDescription, LaunchDescriptionEntity
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.utilities.type_utils import normalize_typed_substitution, perform_typed_substitution
+from launch_ros.actions import Node
+from launch_ros.descriptions import ParameterFile, ParameterValue
 import ros2_launch_helpers as rlh
 
-import os
 
-
-def generate_launch_description():
+def generate_launch_description() -> LaunchDescription:
+    """Declare the inputs required to launch the four-swerve kinematics node."""
     return LaunchDescription(
         [
-            DeclareLaunchArgument('namespace', default_value='robot', description='Namepace'),
-            DeclareLaunchArgument('robot_prefix', default_value='robot_', description="Robot's prefix"),
+            DeclareLaunchArgument('namespace', default_value='', description='Node namespace.'),
+            DeclareLaunchArgument(
+                'robot_prefix', default_value='', description='Prefix used in joint names.'
+            ),
             DeclareLaunchArgument(
                 'params_file',
-                default_value=os.path.join(
-                    get_package_share_directory('ground_vehicle_kinematics'),
-                    'config',
-                    'example_four_swerve_kinematics.yaml',
+                default_value=PathJoinSubstitution(
+                    [
+                        get_package_share_directory('ground_vehicle_kinematics'),
+                        'config',
+                        'example_four_swerve_kinematics.yaml',
+                    ]
                 ),
-                description='Base YAML with ros__parameters',
+                description='Path to the complete node parameter YAML file.',
+            ),
+            DeclareLaunchArgument(
+                'params_file_allow_substs',
+                default_value='True',
+                choices=['True', 'true', 'False', 'false'],
+                description='Allow ROS launch substitutions in params_file.',
             ),
             DeclareLaunchArgument(
                 'use_sim_time',
                 default_value='False',
                 choices=['True', 'true', 'False', 'false'],
-                description='Use simulation clock if true',
+                description='Use ROS simulation time when true.',
             ),
-            DeclareLaunchArgument('node_name', default_value='four_swerve_kinematics', description='Node name'),
-            DeclareLaunchArgument('node_remappings', default_value='{}', description=rlh.REMAPPINGS_DESC),
-            DeclareLaunchArgument('node_logging_options', default_value='{}', description=rlh.LOGGING_OPTIONS_DESC),
-            DeclareLaunchArgument('node_options', default_value='{}', description=rlh.NODE_OPTIONS_DESC),
-            OpaqueFunction(function=launch_kinematics_node),
+            DeclareLaunchArgument(
+                'node_args',
+                default_value='{"output":"both","ros_arguments":["--log-level","info"]}',
+                description=rlh.LAUNCH_ACTION_ARGUMENTS_DESC,
+            ),
+            rlh.RequireFile(path=LaunchConfiguration('params_file')),
+            OpaqueFunction(function=_launch_node),
         ]
     )
 
 
-def launch_kinematics_node(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
-    parameters = []
-    params_file = LaunchConfiguration('params_file').perform(ctx).strip()
-
-    if params_file:
-        parameters.append(ParameterFile(params_file, allow_substs=True))
-
-    parameters.append({'use_sim_time': LaunchConfiguration('use_sim_time')})
-
-    node_name = LaunchConfiguration('node_name').perform(ctx)
-    node_options_by_name, remappings_by_name, ros_arguments_by_name = rlh.resolve_node_launch_configs(
-        node_names=[node_name],
-        node_options=LaunchConfiguration('node_options').perform(ctx),
-        node_logging_options=LaunchConfiguration('node_logging_options').perform(ctx),
-        node_remappings=LaunchConfiguration('node_remappings').perform(ctx),
+def _launch_node(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
+    """Launch the node after resolving whether its parameter file allows substitutions."""
+    allow_substs = perform_typed_substitution(
+        ctx,
+        normalize_typed_substitution(LaunchConfiguration('params_file_allow_substs'), bool),
+        bool,
     )
-    node_options = node_options_by_name[node_name]
-    remappings = remappings_by_name[node_name]
-    ros_arguments = ros_arguments_by_name[node_name]
 
     return [
         Node(
             package='ground_vehicle_kinematics',
             executable='four_swerve_kinematics_node',
-            name=node_name,
             namespace=LaunchConfiguration('namespace'),
-            parameters=parameters,
-            remappings=remappings,
-            ros_arguments=ros_arguments,
-            output=node_options['output'],
-            emulate_tty=node_options['emulate_tty'],
-            respawn=node_options['respawn'],
-            respawn_delay=node_options['respawn_delay'],
+            parameters=[
+                ParameterFile(LaunchConfiguration('params_file'), allow_substs=allow_substs),
+                {
+                    'use_sim_time': ParameterValue(
+                        LaunchConfiguration('use_sim_time'), value_type=bool
+                    )
+                },
+            ],
+            **rlh.resolve_node_arguments(
+                LaunchConfiguration('node_args').perform(ctx),
+                default_arguments={'name': 'four_swerve_kinematics'},
+                extra_rejected_arguments={'namespace'},
+            ),
         )
     ]

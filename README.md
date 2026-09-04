@@ -31,3 +31,8 @@ This package serves as a foundation for controlling and simulating the kinematic
 - In the coordinate frame fixed to wheel `i`, `W_i`, the axis `X_Wi` is aligned with the wheel rolling direction (motion can be along `+X_Wi` or `-X_Wi`).
 - In the coordinate frame fixed to wheel `i`, `W_i`, the axis `Y_Wi` indicates the direction of the wheel rotation axis (rotation can be about `+Y_Wi` or `-Y_Wi`).
 - Solver equations use only planar `XY` geometry (ground-plane model).
+
+## License
+
+This package is distributed under the Apache License 2.0.
+See [LICENSE](LICENSE) for the complete terms.

@@ -28,9 +28,9 @@ namespace ground_vehicle_kinematics
     {
       const auto& pos2d{wheel_descriptors_[i].wheel().pos2d()};
 
-      A((2 * i), 0)     = 1.0;
-      A((2 * i), 1)     = 0.0;
-      A((2 * i), 2)     = -pos2d.y();
+      A((2 * i), 0) = 1.0;
+      A((2 * i), 1) = 0.0;
+      A((2 * i), 2) = -pos2d.y();
       A((2 * i) + 1, 0) = 0.0;
       A((2 * i) + 1, 1) = 1.0;
       A((2 * i) + 1, 2) = pos2d.x();
@@ -56,7 +56,7 @@ namespace ground_vehicle_kinematics
       }
 
       const double wheel_speed{wheel.radius() * ang_vel};
-      b((2 * i), 0)     = wheel_speed * std::cos(theta);
+      b((2 * i), 0) = wheel_speed * std::cos(theta);
       b((2 * i) + 1, 0) = wheel_speed * std::sin(theta);
     }
 
@@ -160,8 +160,8 @@ namespace ground_vehicle_kinematics
     const Eigen::Vector3d twist_vector{direct_k_solver_.solve(build_b())};
 
     // Twist contains a timestamp field.
-    // In this case, we set the timestamp to the value of any timestamp of the wheel states, since they should all be
-    // equal. We use the timestamp of the wheel 0.
+    // All wheel states must have the same timestamp, so any wheel provides the result timestamp.
+    // Use wheel 0 to make that choice deterministic.
     return Twist{twist_vector(0),
                  twist_vector(1),
                  0.0,
@@ -173,9 +173,10 @@ namespace ground_vehicle_kinematics
 
   void ThreeSwerveKinematicsSolver::validate() const
   {
-    // Check that all wheel and joint names are globally unique, that all wheel radii and distances to the base origin
-    // are equal, that alpha_1 lies within [0, pi], that alpha_2 lies within [-pi, 0], that alpha_2 = -alpha_1, that
-    // alpha_0 = 0 when alpha_1 < pi/2 or alpha_0 = pi otherwise, and that beta_i = pi/2 - alpha_i for all i.
+    // Require globally unique wheel and joint names.
+    // All radii and distances to the base origin must match.
+    // alpha_1 must lie in [0, pi], alpha_2 in [-pi, 0], and alpha_2 must equal -alpha_1.
+    // alpha_0 is 0 below pi/2 and pi otherwise. Every beta_i must equal pi/2 - alpha_i.
 
     constexpr double geometry_tolerance{1.0e-9};
 
