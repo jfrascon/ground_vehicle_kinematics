@@ -10,16 +10,15 @@ namespace ground_vehicle_kinematics
 {
   namespace
   {
-    ThreeSwerveKinematicsSolverConfig make_three_swerve_solver_config()
+    ThreeSwerveKinematicsSolverConfig make_three_swerve_solver_config(const double alpha_0 = 0.0,
+                                                                      const double alpha_1 = 2.6878070480712677)
     {
       constexpr double wheel_radius{0.10};
       constexpr double dist{0.50};
-      constexpr double alpha_0{M_PI};
-      constexpr double alpha_1{2.6878070480712677};
-      constexpr double alpha_2{-2.6878070480712677};
-      constexpr double beta_0{(M_PI / 2.0) - alpha_0};
-      constexpr double beta_1{(M_PI / 2.0) - alpha_1};
-      constexpr double beta_2{(M_PI / 2.0) - alpha_2};
+      const double alpha_2{-alpha_1};
+      const double beta_0{(M_PI / 2.0) - alpha_0};
+      const double beta_1{(M_PI / 2.0) - alpha_1};
+      const double beta_2{(M_PI / 2.0) - alpha_2};
 
       return ThreeSwerveKinematicsSolverConfig{std::array<SteerableWheelConfig,
                                                           3>{SteerableWheelConfig{wheel_radius,
@@ -94,6 +93,28 @@ namespace ground_vehicle_kinematics
       return wheel_states;
     }
   }  // namespace
+
+  TEST(ThreeSwerveKinematicsSolverTest, AcceptsYConfiguration)
+  {
+    constexpr double alpha_1{0.4537856055185257};
+
+    EXPECT_NO_THROW(ThreeSwerveKinematicsSolver{make_three_swerve_solver_config(M_PI, alpha_1)});
+  }
+
+  TEST(ThreeSwerveKinematicsSolverTest, AcceptsInvertedYConfiguration)
+  {
+    EXPECT_NO_THROW(ThreeSwerveKinematicsSolver{make_three_swerve_solver_config()});
+  }
+
+  TEST(ThreeSwerveKinematicsSolverTest, RejectsSwappedCommonBranchAngles)
+  {
+    constexpr double y_alpha_1{0.4537856055185257};
+    constexpr double inverted_y_alpha_1{2.6878070480712677};
+
+    EXPECT_THROW(ThreeSwerveKinematicsSolver{make_three_swerve_solver_config(0.0, y_alpha_1)}, std::invalid_argument);
+    EXPECT_THROW(ThreeSwerveKinematicsSolver{make_three_swerve_solver_config(M_PI, inverted_y_alpha_1)},
+                 std::invalid_argument);
+  }
 
   TEST(ThreeSwerveKinematicsSolverTest, ReturnsWheelCommandsInDocumentedWheelOrder)
   {

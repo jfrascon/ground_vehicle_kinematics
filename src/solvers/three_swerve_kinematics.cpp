@@ -176,7 +176,9 @@ namespace ground_vehicle_kinematics
     // Require globally unique wheel and joint names.
     // All radii and distances to the base origin must match.
     // alpha_1 must lie in [0, pi], alpha_2 in [-pi, 0], and alpha_2 must equal -alpha_1.
-    // alpha_0 is 0 below pi/2 and pi otherwise. Every beta_i must equal pi/2 - alpha_i.
+    // Wheel 0 lies on the opposite side of the X axis from the symmetric wheel pair.
+    // Therefore, alpha_0 is pi when alpha_1 is below pi/2, and 0 otherwise.
+    // Every beta_i must equal pi/2 - alpha_i.
 
     constexpr double geometry_tolerance{1.0e-9};
 
@@ -230,12 +232,12 @@ namespace ground_vehicle_kinematics
       throw std::invalid_argument("ThreeSwerveKinematicsSolver requires alpha_2 = -alpha_1.");
     }
 
-    const double expected_alpha_0{(w1.alpha() < (M_PI / 2.0)) ? 0.0 : M_PI};
+    const double expected_alpha_0{(w1.alpha() < (M_PI / 2.0)) ? M_PI : 0.0};
 
     if(!nearly_equal(w0.alpha(), expected_alpha_0, geometry_tolerance))
     {
       throw std::invalid_argument(
-        "ThreeSwerveKinematicsSolver requires alpha_0 = 0 when alpha_1 < pi/2, or alpha_0 = pi otherwise.");
+        "ThreeSwerveKinematicsSolver requires alpha_0 = pi when alpha_1 < pi/2, or alpha_0 = 0 otherwise.");
     }
 
     if(!nearly_equal(w0.beta(), (M_PI / 2.0) - w0.alpha(), geometry_tolerance) ||
